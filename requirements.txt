@@ -1,1 +1,41 @@
-# All Requirements for ExHon
+# Flask and Web Framework
+Flask==2.3.3
+Flask-SocketIO==5.3.6
+
+# System Monitoring
+psutil==5.9.5
+
+# HTTP Requests and Browser Automation
+requests==2.31.0
+selenium==4.15.0
+webdriver-manager==4.0.1
+
+# Process Management
+psutil==5.9.5
+
+# Real-time Communication
+python-socketio==5.9.0
+eventlet==0.33.3
+
+# JSON and Data Handling
+python-json-logger==2.0.7
+
+# Cross-platform Utilities
+pygetwindow==0.0.9
+pyautogui==0.9.54
+
+# Browser Debugging Protocols
+pychrome==0.2.4
+websocket-client==1.6.4
+
+# System Information
+platform==1.0.8
+
+# Web Scraping (for browser tab detection)
+beautifulsoup4==4.12.2
+lxml==4.9.3
+
+# Additional Utilities
+click==8.1.7
+Werkzeug==2.3.7
+Jinja2==3.1.2
