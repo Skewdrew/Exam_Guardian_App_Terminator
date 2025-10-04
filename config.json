@@ -1,0 +1,22 @@
+{
+    "system_info": {
+        "platform": "Linux",
+        "python_version": "3.12.1",
+        "setup_date": "2025-10-04 13:52:44"
+    },
+    "browser_debugging": {
+        "chrome_port": 9222,
+        "firefox_port": 9229,
+        "edge_port": 9225
+    },
+    "monitoring": {
+        "update_interval": 5,
+        "max_log_entries": 50,
+        "auto_start_monitoring": true
+    },
+    "security": {
+        "preserve_exam_tab": true,
+        "require_confirmation": true,
+        "log_all_actions": true
+    }
+}

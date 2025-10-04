@@ -56,7 +56,6 @@ class ExamGuardianDashboard {
       globalAnimationsEnabled: !this.isPrefersReducedMotion(),
       animationQueue: [],
       activeAnimations: new Map(),
-      easingFunctions: this.createEasingFunctions(),
     });
 
     // Advanced Settings with Intelligent Defaults
@@ -85,6 +84,11 @@ class ExamGuardianDashboard {
     this.threatDetector = new ThreatDetector();
     this.dataProcessor = new DataProcessor();
 
+    // Initialize basic elements first
+    this.elements = this.initializeElements();
+    this.charts = {};
+    this.pendingAction = null;
+
     // Initialize Dashboard
     this.init();
   }
@@ -106,33 +110,680 @@ class ExamGuardianDashboard {
         { step: "animations", message: "Preparing premium animations..." },
       ];
 
+      // Check dependencies first
+      this.checkDependencies();
+
       for (const { step, message } of initSteps) {
         this.updateLoadingMessage(message);
-        await this[
+        try {
+          await this[
             `initialize${step.charAt(0).toUpperCase() + step.slice(1)}`
-            ]();
+          ]();
+        } catch (error) {
+          this.logActivity(
+            `⚠️ Failed to initialize ${step}: ${error.message}`,
+            "warning",
+          );
+          // Continue with other initialization steps
+        }
         await this.delay(200); // Smooth progressive loading
       }
 
       // Load settings and start monitoring
-      await this.loadSettings();
+      this.loadSettings();
       this.startPeriodicUpdates();
       this.setupKeyboardShortcuts();
       this.initializeAudioSystem();
 
       // Premium entrance animations
-      if (this.settings.animationsEnabled) {
+      if (this.settings.get("animationsEnabled")) {
         await this.orchestrateEntranceAnimations();
       }
 
       this.logActivity(
-          "🚀 ExamGuardian Pro initialized successfully",
-          "success",
+        "🚀 ExamGuardian Pro initialized successfully",
+        "success",
       );
       this.hideLoading();
     } catch (error) {
-      this.handleError(error, "Initialization failed");
+      console.error("Initialization failed:", error);
+      this.logActivity("❌ Initialization failed: " + error.message, "error");
     }
+  }
+
+  /**
+   * Initialize UI Elements
+   */
+  initializeElements() {
+    const elements = {};
+    const elementIds = [
+      "connection-status",
+      "threat-counter",
+      "close-all-btn",
+      "kill-ai-btn",
+      "kill-ai-quick",
+      "close-tabs-btn",
+      "close-tabs-quick",
+      "refresh-processes-btn",
+      "refresh-tabs-btn",
+      "processes-table",
+      "activity-log",
+      "alert-container",
+      "loading-overlay",
+      "total-processes",
+      "ai-processes",
+      "browser-tabs",
+      "memory-usage",
+      "process-change",
+      "ai-status",
+      "tab-status",
+      "health-status",
+      "cpu-percentage",
+      "ram-percentage",
+      "chrome-count",
+      "firefox-count",
+      "edge-count",
+      "chrome-tab-list",
+      "firefox-tab-list",
+      "edge-tab-list",
+      "process-search",
+      "ai-count-badge",
+      "memory-count-badge",
+      "health-chart",
+      "nav-cpu",
+      "nav-memory",
+      "running-count",
+    ];
+
+    elementIds.forEach((id) => {
+      const element = document.getElementById(id);
+      if (element) {
+        elements[id.replace(/-/g, "_")] = element;
+      }
+    });
+
+    // Modal elements
+    elements.confirmModal = document.getElementById("confirmModal")
+      ? new bootstrap.Modal(document.getElementById("confirmModal"))
+      : null;
+    elements.settingsModal = document.getElementById("settingsModal")
+      ? new bootstrap.Modal(document.getElementById("settingsModal"))
+      : null;
+
+    return elements;
+  }
+
+  /**
+   * Load Settings
+   */
+  loadSettings() {
+    this.settings.load();
+  }
+
+  /**
+   * Start Periodic Updates
+   */
+  startPeriodicUpdates() {
+    this.updateInterval = setInterval(
+      () => {
+        if (this.isConnected && this.socket) {
+          this.socket.emit("request_update");
+        }
+      },
+      this.settings.get("updateInterval") * 1000,
+    );
+  }
+
+  /**
+   * Setup Keyboard Shortcuts
+   */
+  setupKeyboardShortcuts() {
+    this.shortcuts = {
+      "ctrl+shift+k": () => this.showConfirmationModal("kill-all"),
+      "ctrl+shift+a": () => this.showConfirmationModal("kill-ai"),
+      "ctrl+shift+t": () => this.showConfirmationModal("close-tabs"),
+      "ctrl+shift+r": () => this.requestUpdate(),
+      escape: () => this.closeAllModals(),
+    };
+
+    document.addEventListener("keydown", (e) => this.handleKeyboard(e));
+  }
+
+  /**
+   * Handle Keyboard Events
+   */
+  handleKeyboard(e) {
+    const key = [];
+    if (e.ctrlKey) key.push("ctrl");
+    if (e.shiftKey) key.push("shift");
+    if (e.altKey) key.push("alt");
+    if (e.metaKey) key.push("meta");
+    key.push(e.key.toLowerCase());
+
+    const shortcut = key.join("+");
+    const handler = this.shortcuts[shortcut];
+
+    if (handler) {
+      e.preventDefault();
+      handler(e);
+    }
+  }
+
+  /**
+   * Show Confirmation Modal
+   */
+  showConfirmationModal(action) {
+    this.pendingAction = action;
+    if (this.elements.confirmModal) {
+      this.elements.confirmModal.show();
+    }
+  }
+
+  /**
+   * Close All Modals
+   */
+  closeAllModals() {
+    if (this.elements.confirmModal) this.elements.confirmModal.hide();
+    if (this.elements.settingsModal) this.elements.settingsModal.hide();
+  }
+
+  /**
+   * Request Update
+   */
+  requestUpdate() {
+    if (this.socket && this.isConnected) {
+      this.socket.emit("request_update");
+    }
+  }
+
+  /**
+   * Show Loading Message
+   */
+  showLoadingMessage(message) {
+    const loadingElement = document.getElementById("loading-message");
+    if (loadingElement) {
+      loadingElement.textContent = message;
+    }
+  }
+
+  /**
+   * Update Loading Message
+   */
+  updateLoadingMessage(message) {
+    this.showLoadingMessage(message);
+  }
+
+  /**
+   * Hide Loading
+   */
+  hideLoading() {
+    const loadingOverlay = document.getElementById("loading-overlay");
+    if (loadingOverlay) {
+      loadingOverlay.style.display = "none";
+    }
+  }
+
+  /**
+   * Show Loading Advanced
+   */
+  showLoadingAdvanced(message) {
+    const loadingOverlay = document.getElementById("loading-overlay");
+    const loadingMessage = document.getElementById("loading-message");
+    if (loadingOverlay) {
+      loadingOverlay.classList.add("show");
+    }
+    if (loadingMessage) {
+      loadingMessage.textContent = message;
+    }
+  }
+
+  /**
+   * Hide Loading Advanced
+   */
+  hideLoadingAdvanced() {
+    const loadingOverlay = document.getElementById("loading-overlay");
+    if (loadingOverlay) {
+      loadingOverlay.classList.remove("show");
+    }
+  }
+
+  /**
+   * Log Activity
+   */
+  logActivity(message, type = "info", showInUI = true) {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = `[${timestamp}] ${message}`;
+
+    console.log(logEntry);
+
+    if (showInUI && this.elements.activity_log) {
+      const logElement = document.createElement("div");
+      logElement.className = `log-entry log-${type}`;
+      logElement.innerHTML = `
+        <div class="d-flex align-items-center">
+          <i class="bi bi-${type === "success" ? "check-circle" : type === "error" ? "exclamation-triangle" : type === "warning" ? "exclamation-circle" : "info-circle"} me-2"></i>
+          <span class="log-timestamp me-3 text-white-50">${timestamp}</span>
+          <span>${message}</span>
+        </div>
+      `;
+
+      this.elements.activity_log.appendChild(logElement);
+
+      // Keep only last 50 entries
+      while (this.elements.activity_log.children.length > 50) {
+        this.elements.activity_log.removeChild(
+          this.elements.activity_log.firstChild,
+        );
+      }
+
+      // Auto-scroll to bottom
+      this.elements.activity_log.scrollTop =
+        this.elements.activity_log.scrollHeight;
+    }
+  }
+
+  /**
+   * Show Alert
+   */
+  showAlert(message, type = "info") {
+    const alertContainer = document.getElementById("alert-container");
+    if (!alertContainer) return;
+
+    const alertDiv = document.createElement("div");
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+      <div class="d-flex align-items-center">
+        <i class="bi bi-${type === "success" ? "check-circle" : type === "danger" ? "exclamation-triangle" : "info-circle"}-fill me-2"></i>
+        <div class="flex-grow-1">${message}</div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+      </div>
+    `;
+
+    alertContainer.appendChild(alertDiv);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      if (alertDiv.parentNode) {
+        alertDiv.remove();
+      }
+    }, 5000);
+  }
+
+  /**
+   * Precompute Common Operations
+   */
+  precomputeCommonOperations() {
+    // Placeholder for precomputation logic
+  }
+
+  /**
+   * Create Performance Charts
+   */
+  createPerformanceCharts() {
+    // Placeholder for performance charts
+  }
+
+  /**
+   * Prepare Entrance Animations
+   */
+  prepareEntranceAnimations() {
+    // Placeholder for entrance animations
+  }
+
+  /**
+   * Initialize Micro Interactions
+   */
+  initializeMicroInteractions() {
+    // Add hover effects to buttons
+    document
+      .querySelectorAll(".btn-premium, .micro-interaction")
+      .forEach((element) => {
+        element.addEventListener("mouseenter", () => {
+          if (this.settings.get("animationsEnabled")) {
+            element.style.transform = "translateY(-2px)";
+          }
+        });
+
+        element.addEventListener("mouseleave", () => {
+          element.style.transform = "";
+        });
+      });
+  }
+
+  /**
+   * Orchestrate Entrance Animations
+   */
+  async orchestrateEntranceAnimations() {
+    const cards = document.querySelectorAll(".hero-stat-card, .glass-card");
+    for (let i = 0; i < cards.length; i++) {
+      await this.delay(100);
+      cards[i].classList.add("animate__animated", "animate__fadeInUp");
+    }
+  }
+
+  /**
+   * Start Frame Rate Monitoring
+   */
+  startFrameRateMonitoring() {
+    let lastTime = performance.now();
+    let frameCount = 0;
+
+    const measureFrameRate = (currentTime) => {
+      frameCount++;
+
+      if (currentTime >= lastTime + 1000) {
+        this.performanceTracker.animationFrameRate = frameCount;
+        frameCount = 0;
+        lastTime = currentTime;
+      }
+
+      requestAnimationFrame(measureFrameRate);
+    };
+
+    requestAnimationFrame(measureFrameRate);
+  }
+
+  /**
+   * Bind Advanced Button
+   */
+  bindAdvancedButton(id, handler) {
+    const button = document.getElementById(id);
+    if (button) {
+      button.addEventListener("click", (e) => {
+        e.preventDefault();
+        handler();
+      });
+    }
+  }
+
+  /**
+   * Bind Intelligent Input
+   */
+  bindIntelligentInput(id, handler) {
+    const input = document.getElementById(id);
+    if (input) {
+      let timeout;
+      input.addEventListener("input", (e) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => handler(e.target.value), 300);
+      });
+    }
+  }
+
+  /**
+   * Bind Advanced Dropdown Actions
+   */
+  bindAdvancedDropdownActions() {
+    const actions = [
+      { id: "sort-by-memory", handler: () => this.sortProcesses("memory") },
+      { id: "sort-by-cpu", handler: () => this.sortProcesses("cpu") },
+      { id: "sort-by-name", handler: () => this.sortProcesses("name") },
+      { id: "filter-ai-only", handler: () => this.filterProcesses("ai") },
+      {
+        id: "filter-high-memory",
+        handler: () => this.filterProcesses("high-memory"),
+      },
+      { id: "export-list", handler: () => this.exportProcessList() },
+    ];
+
+    actions.forEach(({ id, handler }) => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.addEventListener("click", (e) => {
+          e.preventDefault();
+          handler();
+        });
+      }
+    });
+  }
+
+  /**
+   * Bind Optimized Global Events
+   */
+  bindOptimizedGlobalEvents() {
+    window.addEventListener("beforeunload", () => this.cleanup());
+    window.addEventListener("focus", () => this.handleWindowFocus());
+    window.addEventListener("blur", () => this.handleWindowBlur());
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        this.requestUpdate();
+      }
+    });
+  }
+
+  /**
+   * Handle Window Focus
+   */
+  handleWindowFocus() {
+    this.requestUpdate();
+  }
+
+  /**
+   * Handle Window Blur
+   */
+  handleWindowBlur() {
+    // Reduce update frequency when window is not focused
+  }
+
+  /**
+   * Cleanup
+   */
+  cleanup() {
+    this.destroy();
+  }
+
+  /**
+   * Refresh With Animation
+   */
+  refreshWithAnimation(type) {
+    this.logActivity(`🔄 Refreshing ${type}...`, "info");
+    this.requestUpdate();
+  }
+
+  /**
+   * Clear Activity Log With Confirmation
+   */
+  clearActivityLogWithConfirmation() {
+    if (confirm("Clear all activity log entries?")) {
+      if (this.elements.activity_log) {
+        this.elements.activity_log.innerHTML = "";
+        this.logActivity("📝 Activity log cleared", "info");
+      }
+    }
+  }
+
+  /**
+   * Export Activity Log Advanced
+   */
+  exportActivityLogAdvanced() {
+    if (this.elements.activity_log) {
+      const logs = Array.from(this.elements.activity_log.children)
+        .map((entry) => entry.textContent.trim())
+        .join("\n");
+
+      const blob = new Blob([logs], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `examguardian-log-${new Date().toISOString().slice(0, 19)}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      this.logActivity("📥 Activity log exported", "success");
+    }
+  }
+
+  /**
+   * Sort Processes
+   */
+  sortProcesses(sortBy) {
+    this.state.set("sortBy", sortBy);
+    this.logActivity(`📊 Sorting by ${sortBy}`, "info");
+    this.requestUpdate();
+  }
+
+  /**
+   * Filter Processes
+   */
+  filterProcesses(filter) {
+    this.state.set("filterMode", filter);
+    this.logActivity(`🔍 Filtering by ${filter}`, "info");
+    this.requestUpdate();
+  }
+
+  /**
+   * Export Process List
+   */
+  exportProcessList() {
+    this.logActivity("📥 Exporting process list...", "info");
+    // Implementation for exporting process list
+  }
+
+  /**
+   * Save Settings
+   */
+  saveSettings() {
+    this.settings.save();
+    this.logActivity("⚙️ Settings saved", "success");
+  }
+
+  /**
+   * Play Success Sound
+   */
+  playSuccessSound() {
+    if (this.settings.get("audioAlerts")) {
+      // Play success sound
+      this.playSound("success");
+    }
+  }
+
+  /**
+   * Play Error Sound
+   */
+  playErrorSound() {
+    if (this.settings.get("audioAlerts")) {
+      // Play error sound
+      this.playSound("error");
+    }
+  }
+
+  /**
+   * Play Sound
+   */
+  playSound(type) {
+    try {
+      const audio = document.getElementById("alert-sound");
+      if (audio) {
+        audio.play().catch((e) => console.log("Audio play failed:", e));
+      }
+    } catch (error) {
+      console.log("Sound play failed:", error);
+    }
+  }
+
+  /**
+   * Handle Connection
+   */
+  handleConnection(connected, reason = "") {
+    this.isConnected = connected;
+    this.updateConnectionStatus(connected);
+
+    if (connected) {
+      this.logActivity("🔗 Connected to server", "success");
+      this.playSound("connect");
+      this.socket.emit("start_monitoring");
+    } else {
+      this.logActivity(`❌ Disconnected: ${reason}`, "error");
+      this.showAlert(
+        "⚠️ Connection lost. Attempting to reconnect...",
+        "warning",
+      );
+    }
+  }
+
+  /**
+   * Handle Reconnection
+   */
+  handleReconnection() {
+    this.logActivity("🔄 Reconnected successfully", "success");
+    this.requestUpdate();
+  }
+
+  /**
+   * Handle Reconnection Failed
+   */
+  handleReconnectionFailed() {
+    this.logActivity("❌ Reconnection failed", "error");
+    this.showAlert("Connection failed. Please refresh the page.", "danger");
+  }
+
+  /**
+   * Update Connection Status
+   */
+  updateConnectionStatus(connected) {
+    const statusElement = this.elements.connection_status;
+    const statusDot = document.getElementById("status-dot");
+
+    if (statusElement) {
+      statusElement.textContent = connected ? "Connected" : "Disconnected";
+      statusElement.className = connected ? "text-success" : "text-danger";
+    }
+
+    if (statusDot) {
+      statusDot.className = connected
+        ? "status-indicator status-running"
+        : "status-indicator status-stopped";
+    }
+  }
+
+  /**
+   * Handle Initial Data
+   */
+  handleInitialData(data) {
+    this.logActivity("📊 Initial data received", "info");
+    this.handleMonitoringUpdate(data);
+  }
+
+  /**
+   * Handle Kill Completed
+   */
+  handleKillCompleted(data) {
+    this.hideLoadingAdvanced();
+    const aiKilled = data.ai_applications?.killed?.length || 0;
+    const tabsClosed = data.browser_tabs?.total_closed || 0;
+
+    this.logActivity(
+      `✅ Action completed: ${aiKilled} AI apps terminated, ${tabsClosed} tabs closed`,
+      "success",
+    );
+    this.showAlert("🎯 Security action completed successfully", "success");
+
+    setTimeout(() => this.requestUpdate(), 1000);
+  }
+
+  /**
+   * Handle AI Kill Completed
+   */
+  handleAiKillCompleted(data) {
+    this.handleKillCompleted(data);
+  }
+
+  /**
+   * Handle Tabs Closed
+   */
+  handleTabsClosed(data) {
+    this.handleKillCompleted(data);
+  }
+
+  /**
+   * Handle Socket Error
+   */
+  handleSocketError(data) {
+    this.logActivity(
+      `🌐 Socket error: ${data.message || "Unknown error"}`,
+      "error",
+    );
   }
 
   /**
@@ -198,8 +849,8 @@ class ExamGuardianDashboard {
       this.logActivity("📊 Advanced charts initialized", "info");
     } catch (error) {
       this.logActivity(
-          "⚠️ Chart initialization failed: " + error.message,
-          "warning",
+        "⚠️ Chart initialization failed: " + error.message,
+        "warning",
       );
     }
   }
@@ -209,6 +860,13 @@ class ExamGuardianDashboard {
    */
   initializeSocket() {
     try {
+      // Check if Socket.IO is available
+      if (typeof io === "undefined") {
+        throw new Error(
+          "Socket.IO library not loaded. Please check your internet connection and refresh the page.",
+        );
+      }
+
       this.socket = io({
         transports: ["websocket", "polling"],
         upgrade: true,
@@ -225,7 +883,7 @@ class ExamGuardianDashboard {
       // Connection Management
       this.socket.on("connect", () => this.handleConnection(true));
       this.socket.on("disconnect", (reason) =>
-          this.handleConnection(false, reason),
+        this.handleConnection(false, reason),
       );
       this.socket.on("reconnect", () => this.handleReconnection());
       this.socket.on("reconnect_failed", () => this.handleReconnectionFailed());
@@ -233,53 +891,63 @@ class ExamGuardianDashboard {
       // Data Events with Advanced Processing
       this.socket.on("initial_data", (data) => this.handleInitialData(data));
       this.socket.on("monitoring_update", (data) =>
-          this.handleMonitoringUpdate(data),
+        this.handleMonitoringUpdate(data),
       );
       this.socket.on("kill_completed", (data) =>
-          this.handleKillCompleted(data),
+        this.handleKillCompleted(data),
       );
       this.socket.on("ai_kill_completed", (data) =>
-          this.handleAiKillCompleted(data),
+        this.handleAiKillCompleted(data),
       );
       this.socket.on("tabs_closed", (data) => this.handleTabsClosed(data));
       this.socket.on("error", (data) => this.handleSocketError(data));
 
       this.logActivity(
-          "🔌 Socket.IO initialized with advanced features",
-          "info",
+        "🔌 Socket.IO initialized with advanced features",
+        "info",
       );
     } catch (error) {
-      this.handleError(error, "Socket initialization failed");
+      this.logActivity(
+        `❌ Socket initialization failed: ${error.message}`,
+        "error",
+      );
+      this.showAlert(
+        "⚠️ Real-time monitoring unavailable. Some features may be limited.",
+        "warning",
+      );
+
+      // Set up fallback polling mechanism
+      this.setupFallbackPolling();
     }
   }
 
   /**
    * Ultra Premium Event Binding System
    */
-  bindEvents() {
+  initializeEvents() {
     // Primary Action Buttons with Advanced Handlers
     this.bindAdvancedButton("close-all-btn", () =>
-        this.showConfirmationModal("kill-all"),
+      this.showConfirmationModal("kill-all"),
     );
     this.bindAdvancedButton("kill-ai-btn", () =>
-        this.showConfirmationModal("kill-ai"),
+      this.showConfirmationModal("kill-ai"),
     );
     this.bindAdvancedButton("kill-ai-quick", () =>
-        this.showConfirmationModal("kill-ai"),
+      this.showConfirmationModal("kill-ai"),
     );
     this.bindAdvancedButton("close-tabs-btn", () =>
-        this.showConfirmationModal("close-tabs"),
+      this.showConfirmationModal("close-tabs"),
     );
     this.bindAdvancedButton("close-tabs-quick", () =>
-        this.showConfirmationModal("close-tabs"),
+      this.showConfirmationModal("close-tabs"),
     );
 
     // Enhanced Refresh Buttons
     this.bindAdvancedButton("refresh-processes-btn", () =>
-        this.refreshWithAnimation("processes"),
+      this.refreshWithAnimation("processes"),
     );
     this.bindAdvancedButton("refresh-tabs-btn", () =>
-        this.refreshWithAnimation("tabs"),
+      this.refreshWithAnimation("tabs"),
     );
 
     // Modal Actions
@@ -287,7 +955,7 @@ class ExamGuardianDashboard {
 
     // Advanced Search with Debouncing and Intelligent Filtering
     this.bindIntelligentInput("process-search", (value) =>
-        this.handleIntelligentSearch(value),
+      this.handleIntelligentSearch(value),
     );
 
     // Settings Management
@@ -295,10 +963,10 @@ class ExamGuardianDashboard {
 
     // Log Management with Batch Operations
     this.bindAdvancedButton("clear-log", () =>
-        this.clearActivityLogWithConfirmation(),
+      this.clearActivityLogWithConfirmation(),
     );
     this.bindAdvancedButton("export-log", () =>
-        this.exportActivityLogAdvanced(),
+      this.exportActivityLogAdvanced(),
     );
 
     // Advanced Dropdown Actions
@@ -308,6 +976,13 @@ class ExamGuardianDashboard {
     this.bindOptimizedGlobalEvents();
 
     this.logActivity("⚡ Advanced event system initialized", "info");
+  }
+
+  /**
+   * Bind Events (called from initializeEvents)
+   */
+  bindEvents() {
+    this.initializeEvents();
   }
 
   /**
@@ -376,35 +1051,35 @@ class ExamGuardianDashboard {
       const updatePromises = [];
 
       if (
-          data.processes &&
-          this.hasSignificantChange(data.processes, previousData.processes)
+        data.processes &&
+        this.hasSignificantChange(data.processes, previousData.processes)
       ) {
         updatePromises.push(
-            this.updateProcessesDisplayAdvanced(
-                data.processes,
-                previousData.processes,
-            ),
+          this.updateProcessesDisplayAdvanced(
+            data.processes,
+            previousData.processes,
+          ),
         );
       }
 
       if (
-          data.browser_tabs &&
-          this.hasSignificantChange(data.browser_tabs, previousData.browser_tabs)
+        data.browser_tabs &&
+        this.hasSignificantChange(data.browser_tabs, previousData.browser_tabs)
       ) {
         updatePromises.push(
-            this.updateBrowserTabsDisplayAdvanced(
-                data.browser_tabs,
-                previousData.browser_tabs,
-            ),
+          this.updateBrowserTabsDisplayAdvanced(
+            data.browser_tabs,
+            previousData.browser_tabs,
+          ),
         );
       }
 
       if (data.system_stats) {
         updatePromises.push(
-            this.updateSystemStatsAdvanced(
-                data.system_stats,
-                previousData.system_stats,
-            ),
+          this.updateSystemStatsAdvanced(
+            data.system_stats,
+            previousData.system_stats,
+          ),
         );
       }
 
@@ -441,9 +1116,9 @@ class ExamGuardianDashboard {
 
     // Generate cache key for memoization
     const cacheKey = this.generateProcessCacheKey(
-        processes,
-        this.state.get("filterMode"),
-        this.state.get("sortBy"),
+      processes,
+      this.state.get("filterMode"),
+      this.state.get("sortBy"),
     );
 
     // Check cache first
@@ -452,8 +1127,8 @@ class ExamGuardianDashboard {
     if (!processedData) {
       // Process data with advanced algorithms
       processedData = await this.processDataWithAdvancedDP(
-          processes,
-          aiProcesses,
+        processes,
+        aiProcesses,
       );
       this.dpCache.processFilters.set(cacheKey, processedData);
     }
@@ -505,9 +1180,9 @@ class ExamGuardianDashboard {
 
     // Parallel processing for large datasets
     const categorizedProcesses = await this.processInBatches(
-        processes,
-        categorizeProcessAdvanced,
-        50,
+      processes,
+      categorizeProcessAdvanced,
+      50,
     );
 
     // Advanced analytics
@@ -516,7 +1191,7 @@ class ExamGuardianDashboard {
     return {
       allProcesses: categorizedProcesses,
       displayProcesses:
-          this.applyIntelligentFiltersAndSort(categorizedProcesses),
+        this.applyIntelligentFiltersAndSort(categorizedProcesses),
       totalCount: processes.length,
       aiCount: aiProcesses.length,
       runningCount: processes.filter((p) => p.status === "running").length,
@@ -555,13 +1230,13 @@ class ExamGuardianDashboard {
    */
   async orchestrateCounterUpdates(updates) {
     const animations = Object.entries(updates)
-        .map(([elementId, value]) => {
-          const element = this.elements[elementId];
-          if (element) {
-            return this.animateCounterAdvanced(element, value);
-          }
-        })
-        .filter(Boolean);
+      .map(([elementId, value]) => {
+        const element = this.elements[elementId];
+        if (element) {
+          return this.animateCounterAdvanced(element, value);
+        }
+      })
+      .filter(Boolean);
 
     // Stagger animations for premium feel
     for (let i = 0; i < animations.length; i++) {
@@ -695,16 +1370,16 @@ class ExamGuardianDashboard {
           // Exponential backoff
           await this.delay(Math.pow(2, attempt) * 1000);
           this.logActivity(
-              `🔄 Retrying API call (${attempt}/${maxRetries})`,
-              "warning",
+            `🔄 Retrying API call (${attempt}/${maxRetries})`,
+            "warning",
           );
         }
       }
     }
 
     this.logActivity(
-        `🌐 API Error [${endpoint}]: ${lastError.message}`,
-        "error",
+      `🌐 API Error [${endpoint}]: ${lastError.message}`,
+      "error",
     );
     throw lastError;
   }
@@ -755,6 +1430,512 @@ class ExamGuardianDashboard {
 
     // Update search analytics
     this.updateSearchAnalytics(query, results.length);
+  }
+
+  /**
+   * Perform Fuzzy Search
+   */
+  performFuzzySearch(query) {
+    // Simple fuzzy search implementation
+    return { results: [], count: 0 };
+  }
+
+  /**
+   * Apply Search Results Animated
+   */
+  applySearchResultsAnimated(results) {
+    // Apply search results with animations
+  }
+
+  /**
+   * Update Search Analytics
+   */
+  updateSearchAnalytics(query, count) {
+    // Update search analytics
+  }
+
+  /**
+   * Is Data Unchanged
+   */
+  isDataUnchanged(data) {
+    // Simple data comparison
+    return false;
+  }
+
+  /**
+   * Has Significant Change
+   */
+  hasSignificantChange(newData, oldData) {
+    // Simple change detection
+    return true;
+  }
+
+  /**
+   * Update System Stats Advanced
+   */
+  async updateSystemStatsAdvanced(newStats, oldStats) {
+    // Update system statistics
+  }
+
+  /**
+   * Update Browser Tabs Display Advanced
+   */
+  async updateBrowserTabsDisplayAdvanced(tabsData, previousData) {
+    // Update browser tabs display
+  }
+
+  /**
+   * Update Performance Metrics
+   */
+  updatePerformanceMetrics(stats) {
+    // Update performance metrics
+  }
+
+  /**
+   * Update Timestamp Smooth
+   */
+  updateTimestampSmooth(timestamp) {
+    // Update timestamp with smooth animation
+  }
+
+  /**
+   * Calculate Process Category
+   */
+  calculateProcessCategory(process) {
+    if (process.is_ai_app) return "ai-threat";
+    if (process.memory_percent > 15) return "high-memory";
+    if (process.cpu_percent > 20) return "high-cpu";
+    return "normal";
+  }
+
+  /**
+   * Calculate Threat Score
+   */
+  calculateThreatScore(data) {
+    if (typeof data === "object" && data.aiApps) {
+      return data.aiApps.length * 2;
+    }
+    let score = 0;
+    if (data.is_ai_app) score += 10;
+    if (data.memory_percent > 20) score += 3;
+    if (data.cpu_percent > 30) score += 2;
+    return Math.min(score, 10);
+  }
+
+  /**
+   * Calculate Process Priority
+   */
+  calculateProcessPriority(process) {
+    return (
+      (process.memory_percent || 0) * 0.6 + (process.cpu_percent || 0) * 0.4
+    );
+  }
+
+  /**
+   * Assess Risk Level
+   */
+  assessRiskLevel(process) {
+    const score = this.calculateThreatScore(process);
+    if (score >= 8) return "critical";
+    if (score >= 6) return "high";
+    if (score >= 4) return "medium";
+    return "low";
+  }
+
+  /**
+   * Generate Recommendation
+   */
+  generateRecommendation(process) {
+    if (process.is_ai_app) return "Terminate immediately";
+    if (process.memory_percent > 20) return "Monitor closely";
+    return "Normal operation";
+  }
+
+  /**
+   * Process In Batches
+   */
+  async processInBatches(items, processor, batchSize) {
+    return this.dataProcessor.processInBatches(items, processor, batchSize);
+  }
+
+  /**
+   * Calculate Advanced Analytics
+   */
+  calculateAdvancedAnalytics(processes) {
+    return {
+      totalProcesses: processes.length,
+      averageMemory:
+        processes.reduce((sum, p) => sum + (p.memory_percent || 0), 0) /
+        processes.length,
+      averageCpu:
+        processes.reduce((sum, p) => sum + (p.cpu_percent || 0), 0) /
+        processes.length,
+    };
+  }
+
+  /**
+   * Apply Intelligent Filters And Sort
+   */
+  applyIntelligentFiltersAndSort(processes) {
+    let filtered = [...processes];
+
+    // Apply filters based on current state
+    const filterMode = this.state.get("filterMode");
+    if (filterMode === "ai") {
+      filtered = filtered.filter((p) => p.is_ai_app);
+    } else if (filterMode === "high-memory") {
+      filtered = filtered.filter((p) => p.memory_percent > 10);
+    }
+
+    // Apply sorting
+    const sortBy = this.state.get("sortBy");
+    const sortOrder = this.state.get("sortOrder");
+
+    filtered.sort((a, b) => {
+      let aVal = a[sortBy] || 0;
+      let bVal = b[sortBy] || 0;
+
+      if (typeof aVal === "string") {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal || "").toLowerCase();
+      }
+
+      const result = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return sortOrder === "desc" ? -result : result;
+    });
+
+    return filtered;
+  }
+
+  /**
+   * Group By Advanced Categories
+   */
+  groupByAdvancedCategories(processes) {
+    return this.dataProcessor.groupBy(processes, (p) => p.category);
+  }
+
+  /**
+   * Update Process Status Advanced
+   */
+  updateProcessStatusAdvanced(data) {
+    // Update process status indicators
+  }
+
+  /**
+   * Render Process Table Virtual
+   */
+  renderProcessTableVirtual(processes) {
+    const tbody = this.elements.processes_table;
+    if (!tbody) return;
+
+    // Clear existing rows
+    tbody.innerHTML = "";
+
+    if (processes.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" class="text-center py-4">
+            <div class="text-white-50">
+              <i class="bi bi-inbox fs-1 mb-2 d-block"></i>
+              <p>No processes found</p>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    // Render processes (simplified virtual scrolling)
+    processes.slice(0, 50).forEach((process) => {
+      const row = document.createElement("tr");
+      row.className = process.is_ai_app ? "process-row-ai" : "";
+
+      row.innerHTML = `
+        <td>
+          <div class="d-flex align-items-center">
+            <div class="status-indicator ${process.status === "running" ? "status-running" : "status-stopped"} me-2"></div>
+            <div>
+              <div class="fw-semibold">${process.name || "Unknown"}</div>
+              <small class="text-white-50">PID: ${process.pid || "N/A"}</small>
+            </div>
+          </div>
+        </td>
+        <td><span class="badge badge-premium">${(process.cpu_percent || 0).toFixed(1)}%</span></td>
+        <td><span class="badge badge-premium">${(process.memory_percent || 0).toFixed(1)}%</span></td>
+        <td>
+          <span class="badge ${process.is_ai_app ? "badge-ai-threat" : "badge-normal"}">
+            ${process.is_ai_app ? "AI Threat" : "Normal"}
+          </span>
+        </td>
+        <td>
+          ${process.is_ai_app ? '<button class="btn btn-danger btn-sm">Terminate</button>' : ""}
+        </td>
+      `;
+
+      tbody.appendChild(row);
+    });
+  }
+
+  /**
+   * Identify Threats Advanced
+   */
+  identifyThreatsAdvanced(data) {
+    const processes = data.processes?.ai || [];
+    const tabs = data.browser_tabs?.tabs || {};
+
+    return {
+      aiApps: processes.filter((p) => p.is_ai_app),
+      suspiciousTabs: [],
+      totalThreats: processes.filter((p) => p.is_ai_app).length,
+    };
+  }
+
+  /**
+   * Handle Threat Level Change Advanced
+   */
+  handleThreatLevelChangeAdvanced(level, threats) {
+    const levels = ["Safe", "Low", "Medium", "High", "Critical"];
+    const levelName = levels[Math.min(Math.floor(level), 4)];
+
+    this.logActivity(
+      `🚨 Threat level: ${levelName}`,
+      level > 2 ? "error" : "warning",
+    );
+
+    // Update UI threat indicators
+    this.updateThreatIndicators(level);
+  }
+
+  /**
+   * Update Threat Indicators
+   */
+  updateThreatIndicators(level) {
+    const threatCard = document.getElementById("ai-threat-card");
+    if (threatCard) {
+      threatCard.className =
+        level > 2
+          ? "hero-stat-card glass-card-strong h-100 float-animation pulse-danger"
+          : "hero-stat-card glass-card-strong h-100 float-animation";
+    }
+  }
+
+  /**
+   * Evaluate Auto Termination
+   */
+  evaluateAutoTermination(threats) {
+    if (threats.aiApps.length > 0 && this.settings.get("autoTerminate")) {
+      this.logActivity(
+        `🤖 Auto-termination triggered for ${threats.aiApps.length} AI threats`,
+        "warning",
+      );
+    }
+  }
+
+  /**
+   * Update Threat Visualization
+   */
+  updateThreatVisualization(threats) {
+    // Update threat visualization
+  }
+
+  /**
+   * Add Counter Completion Effect
+   */
+  addCounterCompletionEffect(element) {
+    element.classList.add("counter-update");
+    setTimeout(() => element.classList.remove("counter-update"), 600);
+  }
+
+  /**
+   * Perform Kill All Advanced
+   */
+  async performKillAllAdvanced() {
+    const response = await this.apiCall("/api/kill-all", {
+      method: "POST",
+      body: { exam_url: this.currentExamUrl },
+    });
+
+    if (response.success) {
+      this.showAlert("🎯 Successfully secured exam environment", "success");
+      this.logActivity("🎯 Kill All operation completed", "success");
+    } else {
+      throw new Error(response.error || "Kill All operation failed");
+    }
+  }
+
+  /**
+   * Perform Kill AI Advanced
+   */
+  async performKillAIAdvanced() {
+    const response = await this.apiCall("/api/kill-ai-only", {
+      method: "POST",
+    });
+
+    if (response.success) {
+      const count = response.data?.killed?.length || 0;
+      this.showAlert(`🤖 Terminated ${count} AI applications`, "success");
+      this.logActivity(`🤖 AI applications terminated: ${count}`, "success");
+    } else {
+      throw new Error(response.error || "AI termination failed");
+    }
+  }
+
+  /**
+   * Perform Close Tabs Advanced
+   */
+  async performCloseTabsAdvanced() {
+    const response = await this.apiCall("/api/close-tabs-only", {
+      method: "POST",
+      body: { exam_url: this.currentExamUrl },
+    });
+
+    if (response.success) {
+      const count = response.data?.total_closed || 0;
+      this.showAlert(`🌐 Closed ${count} browser tabs`, "success");
+      this.logActivity(`🌐 Browser tabs closed: ${count}`, "success");
+    } else {
+      throw new Error(response.error || "Tab closure failed");
+    }
+  }
+
+  /**
+   * Handle Network Error
+   */
+  handleNetworkError(error) {
+    this.logActivity(
+      "🌐 Network error detected, attempting recovery...",
+      "warning",
+    );
+  }
+
+  /**
+   * Handle Type Error
+   */
+  handleTypeError(error) {
+    this.logActivity(
+      "⚠️ Type error detected, checking data integrity...",
+      "warning",
+    );
+  }
+
+  /**
+   * Handle Generic Error
+   */
+  handleGenericError(error) {
+    this.logActivity(
+      "❌ Generic error occurred, logging for analysis...",
+      "error",
+    );
+  }
+
+  /**
+   * Attempt Automatic Recovery
+   */
+  attemptAutomaticRecovery(error, context) {
+    setTimeout(() => {
+      this.logActivity("🔄 Attempting automatic recovery...", "info");
+      this.requestUpdate();
+    }, 5000);
+  }
+
+  /**
+   * Update Cache Hit Rate
+   */
+  updateCacheHitRate() {
+    // Calculate cache hit rate
+    let totalRequests = 0;
+    let totalHits = 0;
+
+    Object.values(this.dpCache).forEach((cache) => {
+      if (cache instanceof LRUCache) {
+        totalRequests += cache.size;
+      }
+    });
+
+    this.performanceTracker.cacheHitRate =
+      totalRequests > 0 ? totalHits / totalRequests : 0;
+  }
+
+  /**
+   * Optimize Memory Usage
+   */
+  optimizeMemoryUsage() {
+    // Force cache cleanup
+    this.performIntelligentCacheCleanup();
+
+    // Suggest garbage collection
+    if (window.gc) {
+      window.gc();
+    }
+
+    this.logActivity("🧹 Memory optimization performed", "info");
+  }
+
+  /**
+   * Load Audio Samples
+   */
+  loadAudioSamples(samples) {
+    samples.forEach((sample) => {
+      // Create audio buffer for each sample
+      this.audioBuffers.set(sample.name, sample.url);
+    });
+  }
+
+  /**
+   * Setup Fallback Polling when Socket.IO is unavailable
+   */
+  setupFallbackPolling() {
+    this.logActivity("🔄 Setting up fallback polling mechanism", "info");
+
+    // Poll for updates every 10 seconds as fallback
+    this.fallbackInterval = setInterval(async () => {
+      try {
+        const response = await fetch("/api/status");
+        const data = await response.json();
+
+        if (data.success) {
+          this.handleMonitoringUpdate(data.data);
+        }
+      } catch (error) {
+        // Silently handle polling errors to avoid spam
+        console.log("Polling failed:", error.message);
+      }
+    }, 10000);
+  }
+
+  /**
+   * Check Dependencies
+   */
+  checkDependencies() {
+    const missingDeps = [];
+
+    // Check Socket.IO
+    if (typeof io === "undefined") {
+      missingDeps.push("Socket.IO");
+    }
+
+    // Check Chart.js
+    if (typeof Chart === "undefined") {
+      missingDeps.push("Chart.js");
+    }
+
+    // Check Bootstrap
+    if (typeof bootstrap === "undefined") {
+      missingDeps.push("Bootstrap");
+    }
+
+    if (missingDeps.length > 0) {
+      this.logActivity(
+        `⚠️ Missing dependencies: ${missingDeps.join(", ")}`,
+        "warning",
+      );
+      this.showAlert(
+        `Some features may be limited due to missing libraries: ${missingDeps.join(", ")}`,
+        "warning",
+      );
+    }
+
+    return missingDeps.length === 0;
   }
 
   /**
@@ -810,7 +1991,7 @@ class ExamGuardianDashboard {
     try {
       // Create audio context for advanced audio features
       this.audioContext = new (window.AudioContext ||
-          window.webkitAudioContext)();
+        window.webkitAudioContext)();
       this.audioBuffers = new Map();
 
       // Load audio samples
@@ -853,12 +2034,12 @@ class ExamGuardianDashboard {
 
   generateProcessCacheKey(processes, filterMode, sortBy) {
     const hash = this.simpleHash(
-        JSON.stringify({
-          count: processes.length,
-          filter: filterMode,
-          sort: sortBy,
-          timestamp: Math.floor(Date.now() / 30000), // 30-second buckets
-        }),
+      JSON.stringify({
+        count: processes.length,
+        filter: filterMode,
+        sort: sortBy,
+        timestamp: Math.floor(Date.now() / 30000), // 30-second buckets
+      }),
     );
     return `process_${hash}`;
   }
@@ -911,6 +2092,7 @@ class ExamGuardianDashboard {
     if (this.updateInterval) clearInterval(this.updateInterval);
     if (this.cacheCleanupInterval) clearInterval(this.cacheCleanupInterval);
     if (this.memoryMonitorInterval) clearInterval(this.memoryMonitorInterval);
+    if (this.fallbackInterval) clearInterval(this.fallbackInterval);
     if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
 
     // Disconnect socket
@@ -1107,8 +2289,8 @@ class PerformanceTracker {
   getAverageApiResponseTime() {
     if (this.apiResponseTimes.length === 0) return 0;
     const sum = this.apiResponseTimes.reduce(
-        (acc, entry) => acc + entry.value,
-        0,
+      (acc, entry) => acc + entry.value,
+      0,
     );
     return sum / this.apiResponseTimes.length;
   }
@@ -1226,8 +2408,8 @@ class ProcessTree {
 
   getChildren(pid) {
     return Array.from(this.children.get(pid) || [])
-        .map((childPid) => this.processes.get(childPid))
-        .filter(Boolean);
+      .map((childPid) => this.processes.get(childPid))
+      .filter(Boolean);
   }
 
   getDescendants(pid) {
@@ -1321,8 +2503,8 @@ class ThreatDetector {
 
     // Check for AI-related keywords in title
     if (
-        tab.title &&
-        this.aiProcessPatterns.some((pattern) => pattern.test(tab.title))
+      tab.title &&
+      this.aiProcessPatterns.some((pattern) => pattern.test(tab.title))
     ) {
       score += 4;
       factors.push("suspicious_title");
@@ -1364,7 +2546,7 @@ class DataProcessor {
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize);
       const batchResults = await Promise.all(
-          batch.map((item) => processor(item)),
+        batch.map((item) => processor(item)),
       );
       results.push(...batchResults);
 
@@ -1416,8 +2598,8 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("unhandledrejection", (event) => {
       if (window.dashboard) {
         window.dashboard.handleError(
-            event.reason,
-            "Unhandled promise rejection",
+          event.reason,
+          "Unhandled promise rejection",
         );
       }
     });
@@ -1427,7 +2609,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Show fallback error message
     const errorDiv = document.createElement("div");
     errorDiv.className =
-        "alert alert-danger position-fixed top-0 start-0 w-100";
+      "alert alert-danger position-fixed top-0 start-0 w-100";
     errorDiv.style.zIndex = "9999";
     errorDiv.innerHTML = `
             <div class="container">
