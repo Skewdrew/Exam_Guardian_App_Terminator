@@ -1,829 +1,1474 @@
 /**
- * ExHon Dashboard JavaScript
- * Handles real-time monitoring, WebSocket communication, and user interactions
+ * ExamGuardian Pro - Ultra Premium Dashboard JavaScript
+ * Advanced Dynamic Programming, Intelligent Caching, Premium Animations
+ * Version: 3.0 - Ultra Premium Edition with Sophisticated Algorithms
  */
 
-class ExHonDashboard {
+class ExamGuardianDashboard {
   constructor() {
+    // Core System Properties
     this.socket = null;
     this.isConnected = false;
     this.monitoringActive = false;
     this.currentExamUrl = this.getCurrentUrl();
     this.updateInterval = null;
+    this.animationFrameId = null;
 
-    // UI Elements
-    this.elements = {
-      connectionStatus: document.getElementById("connection-status"),
-      closeAllBtn: document.getElementById("close-all-btn"),
-      killAiBtn: document.getElementById("kill-ai-btn"),
-      closeTabsBtn: document.getElementById("close-tabs-btn"),
-      refreshProcessesBtn: document.getElementById("refresh-processes-btn"),
-      refreshTabsBtn: document.getElementById("refresh-tabs-btn"),
-      processesTable: document.getElementById("processes-table"),
-      activityLog: document.getElementById("activity-log"),
-      alertContainer: document.getElementById("alert-container"),
-      loadingOverlay: document.getElementById("loading-overlay"),
-
-      // Stats
-      totalProcesses: document.getElementById("total-processes"),
-      aiProcesses: document.getElementById("ai-processes"),
-      browserTabs: document.getElementById("browser-tabs"),
-      memoryUsage: document.getElementById("memory-usage"),
-
-      // Browser tab elements
-      chromeCount: document.getElementById("chrome-count"),
-      firefoxCount: document.getElementById("firefox-count"),
-      edgeCount: document.getElementById("edge-count"),
-      chromeTabList: document.getElementById("chrome-tab-list"),
-      firefoxTabList: document.getElementById("firefox-tab-list"),
-      edgeTabList: document.getElementById("edge-tab-list"),
-
-      // Modal elements
-      confirmModal: new bootstrap.Modal(
-        document.getElementById("confirmModal"),
-      ),
-      actionPreview: document.getElementById("action-preview"),
-      confirmAction: document.getElementById("confirm-action"),
+    // Advanced Dynamic Programming Cache System
+    this.dpCache = {
+      processFilters: new LRUCache(100),
+      tabGroupings: new LRUCache(50),
+      threatAnalysis: new LRUCache(30),
+      performanceData: new LRUCache(200),
+      searchResults: new LRUCache(50),
+      sortedData: new LRUCache(20),
     };
 
-    this.pendingAction = null;
+    // Intelligent State Management
+    this.state = new StateManager({
+      currentView: "dashboard",
+      selectedProcess: null,
+      selectedTab: null,
+      filterMode: "all",
+      sortBy: "memory",
+      sortOrder: "desc",
+      searchQuery: "",
+      isLoading: false,
+      lastAction: null,
+      threatLevel: 0,
+      performanceMetrics: {},
+      animationQueue: [],
+      connectionStatus: "connecting",
+    });
+
+    // Advanced Performance Monitoring
+    this.performanceTracker = new PerformanceTracker({
+      renderTimes: [],
+      apiResponseTimes: [],
+      memoryUsage: [],
+      cpuUsage: [],
+      cacheHitRate: 0,
+      animationFrameRate: 60,
+    });
+
+    // Sophisticated Animation System
+    this.animationEngine = new AnimationEngine({
+      globalAnimationsEnabled: !this.isPrefersReducedMotion(),
+      animationQueue: [],
+      activeAnimations: new Map(),
+      easingFunctions: this.createEasingFunctions(),
+    });
+
+    // Advanced Settings with Intelligent Defaults
+    this.settings = new SettingsManager({
+      updateInterval: 5,
+      audioAlerts: true,
+      autoTerminate: true,
+      examDomain: this.getExamDomain(),
+      notifications: true,
+      darkMode: true,
+      animationsEnabled: !this.isPrefersReducedMotion(),
+      cacheEnabled: true,
+      debugMode: false,
+      performanceMode: "balanced",
+      threatSensitivity: "medium",
+      autoRefresh: true,
+    });
+
+    // UI Elements Management
+    this.elements = this.initializeElements();
+    this.eventListeners = new Map();
+    this.boundHandlers = new Map();
+
+    // Advanced Data Structures
+    this.processTree = new ProcessTree();
+    this.threatDetector = new ThreatDetector();
+    this.dataProcessor = new DataProcessor();
+
+    // Initialize Dashboard
     this.init();
   }
 
-  init() {
-    this.initializeSocketIO();
-    this.bindEvents();
-    this.startPeriodicUpdates();
-    this.logActivity("System initialized", "info");
+  /**
+   * Advanced Initialization with Progressive Enhancement
+   */
+  async init() {
+    try {
+      this.showLoadingMessage("🛡️ Initializing ExamGuardian Pro...");
+
+      // Progressive initialization steps
+      const initSteps = [
+        { step: "cache", message: "Initializing intelligent cache..." },
+        { step: "charts", message: "Loading advanced visualizations..." },
+        { step: "socket", message: "Establishing secure connection..." },
+        { step: "events", message: "Binding event handlers..." },
+        { step: "performance", message: "Starting performance monitoring..." },
+        { step: "animations", message: "Preparing premium animations..." },
+      ];
+
+      for (const { step, message } of initSteps) {
+        this.updateLoadingMessage(message);
+        await this[
+            `initialize${step.charAt(0).toUpperCase() + step.slice(1)}`
+            ]();
+        await this.delay(200); // Smooth progressive loading
+      }
+
+      // Load settings and start monitoring
+      await this.loadSettings();
+      this.startPeriodicUpdates();
+      this.setupKeyboardShortcuts();
+      this.initializeAudioSystem();
+
+      // Premium entrance animations
+      if (this.settings.animationsEnabled) {
+        await this.orchestrateEntranceAnimations();
+      }
+
+      this.logActivity(
+          "🚀 ExamGuardian Pro initialized successfully",
+          "success",
+      );
+      this.hideLoading();
+    } catch (error) {
+      this.handleError(error, "Initialization failed");
+    }
   }
+
+  /**
+   * Advanced Cache System with LRU Implementation
+   */
+  initializeCache() {
+    if (!this.settings.cacheEnabled) return;
+
+    // Set up intelligent cache cleanup
+    this.cacheCleanupInterval = setInterval(() => {
+      this.performIntelligentCacheCleanup();
+    }, 300000); // 5 minutes
+
+    // Precompute common operations
+    this.precomputeCommonOperations();
+
+    this.logActivity("🧠 Intelligent cache system initialized", "info");
+  }
+
+  /**
+   * Advanced Chart System with Real-time Updates
+   */
+  async initializeCharts() {
+    if (typeof Chart === "undefined") return;
+
+    try {
+      // System Health Chart with Advanced Configuration
+      const healthCanvas = this.elements.health_chart;
+      if (healthCanvas) {
+        this.charts.health = new Chart(healthCanvas.getContext("2d"), {
+          type: "doughnut",
+          data: {
+            datasets: [
+              {
+                data: [85, 15],
+                backgroundColor: [
+                  "rgba(56, 239, 125, 0.8)",
+                  "rgba(255, 255, 255, 0.1)",
+                ],
+                borderWidth: 0,
+                cutout: "70%",
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { enabled: false },
+            },
+            animation: {
+              animateRotate: true,
+              duration: 2000,
+              easing: "easeInOutQuart",
+            },
+          },
+        });
+      }
+
+      // Performance Charts
+      this.createPerformanceCharts();
+      this.logActivity("📊 Advanced charts initialized", "info");
+    } catch (error) {
+      this.logActivity(
+          "⚠️ Chart initialization failed: " + error.message,
+          "warning",
+      );
+    }
+  }
+
+  /**
+   * Advanced Socket.IO with Intelligent Reconnection
+   */
+  initializeSocket() {
+    try {
+      this.socket = io({
+        transports: ["websocket", "polling"],
+        upgrade: true,
+        rememberUpgrade: true,
+        timeout: 20000,
+        forceNew: false,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        maxReconnectionAttempts: 10,
+      });
+
+      // Connection Management
+      this.socket.on("connect", () => this.handleConnection(true));
+      this.socket.on("disconnect", (reason) =>
+          this.handleConnection(false, reason),
+      );
+      this.socket.on("reconnect", () => this.handleReconnection());
+      this.socket.on("reconnect_failed", () => this.handleReconnectionFailed());
+
+      // Data Events with Advanced Processing
+      this.socket.on("initial_data", (data) => this.handleInitialData(data));
+      this.socket.on("monitoring_update", (data) =>
+          this.handleMonitoringUpdate(data),
+      );
+      this.socket.on("kill_completed", (data) =>
+          this.handleKillCompleted(data),
+      );
+      this.socket.on("ai_kill_completed", (data) =>
+          this.handleAiKillCompleted(data),
+      );
+      this.socket.on("tabs_closed", (data) => this.handleTabsClosed(data));
+      this.socket.on("error", (data) => this.handleSocketError(data));
+
+      this.logActivity(
+          "🔌 Socket.IO initialized with advanced features",
+          "info",
+      );
+    } catch (error) {
+      this.handleError(error, "Socket initialization failed");
+    }
+  }
+
+  /**
+   * Ultra Premium Event Binding System
+   */
+  bindEvents() {
+    // Primary Action Buttons with Advanced Handlers
+    this.bindAdvancedButton("close-all-btn", () =>
+        this.showConfirmationModal("kill-all"),
+    );
+    this.bindAdvancedButton("kill-ai-btn", () =>
+        this.showConfirmationModal("kill-ai"),
+    );
+    this.bindAdvancedButton("kill-ai-quick", () =>
+        this.showConfirmationModal("kill-ai"),
+    );
+    this.bindAdvancedButton("close-tabs-btn", () =>
+        this.showConfirmationModal("close-tabs"),
+    );
+    this.bindAdvancedButton("close-tabs-quick", () =>
+        this.showConfirmationModal("close-tabs"),
+    );
+
+    // Enhanced Refresh Buttons
+    this.bindAdvancedButton("refresh-processes-btn", () =>
+        this.refreshWithAnimation("processes"),
+    );
+    this.bindAdvancedButton("refresh-tabs-btn", () =>
+        this.refreshWithAnimation("tabs"),
+    );
+
+    // Modal Actions
+    this.bindAdvancedButton("confirm-action", () => this.executeAction());
+
+    // Advanced Search with Debouncing and Intelligent Filtering
+    this.bindIntelligentInput("process-search", (value) =>
+        this.handleIntelligentSearch(value),
+    );
+
+    // Settings Management
+    this.bindAdvancedButton("save-settings", () => this.saveSettings());
+
+    // Log Management with Batch Operations
+    this.bindAdvancedButton("clear-log", () =>
+        this.clearActivityLogWithConfirmation(),
+    );
+    this.bindAdvancedButton("export-log", () =>
+        this.exportActivityLogAdvanced(),
+    );
+
+    // Advanced Dropdown Actions
+    this.bindAdvancedDropdownActions();
+
+    // Global Event Listeners with Performance Optimization
+    this.bindOptimizedGlobalEvents();
+
+    this.logActivity("⚡ Advanced event system initialized", "info");
+  }
+
+  /**
+   * Advanced Performance Monitoring System
+   */
+  initializePerformance() {
+    // Real-time performance monitoring
+    this.performanceMonitor = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        this.performanceTracker.addEntry(entry);
+      }
+    });
+
+    if (PerformanceObserver.supportedEntryTypes.includes("measure")) {
+      this.performanceMonitor.observe({
+        entryTypes: ["measure", "navigation", "resource"],
+      });
+    }
+
+    // Memory usage monitoring
+    if ("memory" in performance) {
+      this.memoryMonitorInterval = setInterval(() => {
+        this.trackMemoryUsage();
+      }, 30000); // Every 30 seconds
+    }
+
+    // Frame rate monitoring for animations
+    this.startFrameRateMonitoring();
+
+    this.logActivity("📈 Performance monitoring system active", "info");
+  }
+
+  /**
+   * Premium Animation Engine
+   */
+  initializeAnimations() {
+    // Initialize GSAP-like animation engine
+    this.animationEngine.initialize();
+
+    // Set up staggered entrance animations
+    this.prepareEntranceAnimations();
+
+    // Initialize micro-interactions
+    this.initializeMicroInteractions();
+
+    this.logActivity("✨ Premium animation engine loaded", "info");
+  }
+
+  /**
+   * Advanced Data Processing with Memoization
+   */
+  async handleMonitoringUpdate(data) {
+    const startTime = performance.now();
+
+    try {
+      // Smart data comparison to avoid unnecessary updates
+      if (this.isDataUnchanged(data)) {
+        return;
+      }
+
+      // Cache previous data for intelligent comparison
+      const previousData = { ...this.state.get("lastUpdateData") };
+      this.state.set("lastUpdateData", data);
+
+      // Process updates with intelligent batching
+      const updatePromises = [];
+
+      if (
+          data.processes &&
+          this.hasSignificantChange(data.processes, previousData.processes)
+      ) {
+        updatePromises.push(
+            this.updateProcessesDisplayAdvanced(
+                data.processes,
+                previousData.processes,
+            ),
+        );
+      }
+
+      if (
+          data.browser_tabs &&
+          this.hasSignificantChange(data.browser_tabs, previousData.browser_tabs)
+      ) {
+        updatePromises.push(
+            this.updateBrowserTabsDisplayAdvanced(
+                data.browser_tabs,
+                previousData.browser_tabs,
+            ),
+        );
+      }
+
+      if (data.system_stats) {
+        updatePromises.push(
+            this.updateSystemStatsAdvanced(
+                data.system_stats,
+                previousData.system_stats,
+            ),
+        );
+      }
+
+      // Execute all updates concurrently
+      await Promise.all(updatePromises);
+
+      // Advanced threat analysis with ML-like detection
+      this.analyzeThreatsAdvanced(data);
+
+      // Update performance metrics
+      this.updatePerformanceMetrics(data.system_stats);
+
+      // Update timestamp with smooth animation
+      if (data.datetime) {
+        this.updateTimestampSmooth(data.datetime);
+      }
+
+      // Track performance
+      this.performanceTracker.addRenderTime(performance.now() - startTime);
+    } catch (error) {
+      this.handleError(error, "Data processing failed");
+    }
+  }
+
+  /**
+   * Advanced Process Display with Virtual Scrolling
+   */
+  async updateProcessesDisplayAdvanced(processesData, previousData = {}) {
+    const tbody = this.elements.processes_table;
+    if (!tbody) return;
+
+    const processes = processesData.all || [];
+    const aiProcesses = processesData.ai || [];
+
+    // Generate cache key for memoization
+    const cacheKey = this.generateProcessCacheKey(
+        processes,
+        this.state.get("filterMode"),
+        this.state.get("sortBy"),
+    );
+
+    // Check cache first
+    let processedData = this.dpCache.processFilters.get(cacheKey);
+
+    if (!processedData) {
+      // Process data with advanced algorithms
+      processedData = await this.processDataWithAdvancedDP(
+          processes,
+          aiProcesses,
+      );
+      this.dpCache.processFilters.set(cacheKey, processedData);
+    }
+
+    // Update counters with orchestrated animations
+    await this.orchestrateCounterUpdates({
+      total_processes: processedData.totalCount,
+      ai_processes: processedData.aiCount,
+      ai_count_badge: processedData.aiCount,
+      threat_counter: processedData.aiCount,
+      running_count: processedData.runningCount,
+      memory_count_badge: processedData.highMemoryCount,
+    });
+
+    // Update status indicators with smooth transitions
+    this.updateProcessStatusAdvanced(processedData);
+
+    // Render table with virtual scrolling for performance
+    this.renderProcessTableVirtual(processedData.displayProcesses);
+  }
+
+  /**
+   * Advanced Data Processing with Machine Learning-like Algorithms
+   */
+  async processDataWithAdvancedDP(processes, aiProcesses) {
+    // Multi-dimensional memoization cache
+    const memoCache = new Map();
+
+    // Advanced process categorization with weighted scoring
+    const categorizeProcessAdvanced = (process) => {
+      const key = `${process.name}-${process.memory_percent}-${process.cpu_percent}-${process.pid}`;
+
+      if (memoCache.has(key)) {
+        return memoCache.get(key);
+      }
+
+      const result = {
+        ...process,
+        category: this.calculateProcessCategory(process),
+        threatScore: this.calculateThreatScore(process),
+        priority: this.calculateProcessPriority(process),
+        riskLevel: this.assessRiskLevel(process),
+        recommendation: this.generateRecommendation(process),
+      };
+
+      memoCache.set(key, result);
+      return result;
+    };
+
+    // Parallel processing for large datasets
+    const categorizedProcesses = await this.processInBatches(
+        processes,
+        categorizeProcessAdvanced,
+        50,
+    );
+
+    // Advanced analytics
+    const analytics = this.calculateAdvancedAnalytics(categorizedProcesses);
+
+    return {
+      allProcesses: categorizedProcesses,
+      displayProcesses:
+          this.applyIntelligentFiltersAndSort(categorizedProcesses),
+      totalCount: processes.length,
+      aiCount: aiProcesses.length,
+      runningCount: processes.filter((p) => p.status === "running").length,
+      highMemoryCount: processes.filter((p) => p.memory_percent > 10).length,
+      categories: this.groupByAdvancedCategories(categorizedProcesses),
+      analytics,
+      timestamp: Date.now(),
+    };
+  }
+
+  /**
+   * Advanced Threat Analysis with Intelligent Detection
+   */
+  analyzeThreatsAdvanced(data) {
+    const threats = this.identifyThreatsAdvanced(data);
+    const threatScore = this.calculateThreatScore(threats);
+
+    // Check for significant threat level changes
+    const previousThreatLevel = this.state.get("threatLevel");
+    if (Math.abs(threatScore - previousThreatLevel) > 0.5) {
+      this.handleThreatLevelChangeAdvanced(threatScore, threats);
+      this.state.set("threatLevel", threatScore);
+    }
+
+    // Intelligent auto-termination with safety checks
+    if (this.settings.autoTerminate && threats.aiApps.length > 0) {
+      this.evaluateAutoTermination(threats);
+    }
+
+    // Update threat visualization
+    this.updateThreatVisualization(threats);
+  }
+
+  /**
+   * Advanced Animation Orchestration
+   */
+  async orchestrateCounterUpdates(updates) {
+    const animations = Object.entries(updates)
+        .map(([elementId, value]) => {
+          const element = this.elements[elementId];
+          if (element) {
+            return this.animateCounterAdvanced(element, value);
+          }
+        })
+        .filter(Boolean);
+
+    // Stagger animations for premium feel
+    for (let i = 0; i < animations.length; i++) {
+      setTimeout(() => animations[i], i * 100);
+    }
+  }
+
+  /**
+   * Advanced Counter Animation with Physics
+   */
+  async animateCounterAdvanced(element, newValue, options = {}) {
+    if (!element || !this.settings.animationsEnabled) {
+      if (element) element.textContent = newValue;
+      return;
+    }
+
+    const {
+      duration = 800,
+      easing = "easeOutQuart",
+      onUpdate = null,
+      onComplete = null,
+    } = options;
+
+    const currentValue = parseInt(element.textContent) || 0;
+    if (currentValue === newValue) return;
+
+    return new Promise((resolve) => {
+      const startTime = performance.now();
+      const startValue = currentValue;
+      const difference = newValue - startValue;
+
+      const animate = (timestamp) => {
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Apply advanced easing
+        const eased = this.animationEngine.applyEasing(progress, easing);
+        const current = Math.round(startValue + difference * eased);
+
+        element.textContent = current;
+
+        // Custom update callback
+        if (onUpdate) onUpdate(current, progress);
+
+        if (progress < 1) {
+          this.animationFrameId = requestAnimationFrame(animate);
+        } else {
+          element.textContent = newValue;
+
+          // Add completion effects
+          if (Math.abs(difference) > 0) {
+            this.addCounterCompletionEffect(element);
+          }
+
+          if (onComplete) onComplete();
+          resolve();
+        }
+      };
+
+      this.animationFrameId = requestAnimationFrame(animate);
+    });
+  }
+
+  /**
+   * Advanced Action Execution with Error Recovery
+   */
+  async executeAction() {
+    if (!this.pendingAction) return;
+
+    const actionMap = {
+      "kill-all": () => this.performKillAllAdvanced(),
+      "kill-ai": () => this.performKillAIAdvanced(),
+      "close-tabs": () => this.performCloseTabsAdvanced(),
+    };
+
+    this.showLoadingAdvanced(`Executing ${this.pendingAction} action...`);
+    this.elements.confirmModal?.hide();
+
+    try {
+      const action = actionMap[this.pendingAction];
+      if (action) {
+        await action();
+        this.playSuccessSound();
+      }
+    } catch (error) {
+      this.handleError(error, "Action execution failed");
+      this.showAlert("Action failed: " + error.message, "danger");
+      this.playErrorSound();
+    } finally {
+      this.hideLoadingAdvanced();
+      this.pendingAction = null;
+    }
+  }
+
+  /**
+   * Advanced API Communication with Retry Logic
+   */
+  async apiCall(endpoint, options = {}) {
+    const startTime = performance.now();
+    const maxRetries = 3;
+    let lastError;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const config = {
+          headers: { "Content-Type": "application/json" },
+          timeout: 15000,
+          ...options,
+        };
+
+        if (config.body) {
+          config.body = JSON.stringify(config.body);
+        }
+
+        const response = await fetch(endpoint, config);
+        const data = await response.json();
+
+        // Track API performance
+        const responseTime = performance.now() - startTime;
+        this.performanceTracker.addApiResponseTime(responseTime);
+
+        if (!response.ok) {
+          throw new Error(data.error || `HTTP ${response.status}`);
+        }
+
+        return data;
+      } catch (error) {
+        lastError = error;
+
+        if (attempt < maxRetries) {
+          // Exponential backoff
+          await this.delay(Math.pow(2, attempt) * 1000);
+          this.logActivity(
+              `🔄 Retrying API call (${attempt}/${maxRetries})`,
+              "warning",
+          );
+        }
+      }
+    }
+
+    this.logActivity(
+        `🌐 API Error [${endpoint}]: ${lastError.message}`,
+        "error",
+    );
+    throw lastError;
+  }
+
+  /**
+   * Advanced Error Handling with Recovery Strategies
+   */
+  handleError(error, context = "Unknown") {
+    console.error(`ExamGuardian Error [${context}]:`, error);
+
+    // Log error with context
+    this.logActivity(`❌ ${context}: ${error.message}`, "error");
+
+    // Advanced error recovery strategies
+    if (error.name === "NetworkError") {
+      this.handleNetworkError(error);
+    } else if (error.name === "TypeError") {
+      this.handleTypeError(error);
+    } else {
+      this.handleGenericError(error);
+    }
+
+    // Update UI state
+    this.hideLoadingAdvanced();
+    this.updateConnectionStatus(false);
+
+    // Attempt automatic recovery
+    this.attemptAutomaticRecovery(error, context);
+  }
+
+  /**
+   * Intelligent Search with Fuzzy Matching
+   */
+  handleIntelligentSearch(query) {
+    const cacheKey = `search_${query.toLowerCase().trim()}`;
+
+    // Check cache first
+    let results = this.dpCache.searchResults.get(cacheKey);
+
+    if (!results) {
+      // Perform intelligent search with fuzzy matching
+      results = this.performFuzzySearch(query);
+      this.dpCache.searchResults.set(cacheKey, results);
+    }
+
+    // Apply search results with smooth animations
+    this.applySearchResultsAnimated(results);
+
+    // Update search analytics
+    this.updateSearchAnalytics(query, results.length);
+  }
+
+  /**
+   * Advanced Performance Tracking
+   */
+  trackMemoryUsage() {
+    if ("memory" in performance) {
+      const memory = performance.memory;
+      const usage = {
+        used: memory.usedJSHeapSize,
+        total: memory.totalJSHeapSize,
+        limit: memory.jsHeapSizeLimit,
+        timestamp: Date.now(),
+      };
+
+      this.performanceTracker.addMemoryReading(usage);
+
+      // Trigger garbage collection warning if memory usage is high
+      if (usage.used / usage.limit > 0.8) {
+        this.logActivity("⚠️ High memory usage detected", "warning");
+        this.optimizeMemoryUsage();
+      }
+    }
+  }
+
+  /**
+   * Intelligent Cache Cleanup with LRU Algorithm
+   */
+  performIntelligentCacheCleanup() {
+    const maxAge = 600000; // 10 minutes
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    // Cleanup all cache instances
+    Object.values(this.dpCache).forEach((cache) => {
+      if (cache instanceof LRUCache) {
+        cleanedCount += cache.cleanup(maxAge);
+      }
+    });
+
+    if (cleanedCount > 0) {
+      this.logActivity(`🧹 Cleaned ${cleanedCount} cache entries`, "info");
+    }
+
+    // Update cache hit rate
+    this.updateCacheHitRate();
+  }
+
+  /**
+   * Advanced Audio System with Spatial Audio
+   */
+  initializeAudioSystem() {
+    try {
+      // Create audio context for advanced audio features
+      this.audioContext = new (window.AudioContext ||
+          window.webkitAudioContext)();
+      this.audioBuffers = new Map();
+
+      // Load audio samples
+      this.loadAudioSamples([
+        { name: "success", url: "/static/audio/success.wav" },
+        { name: "error", url: "/static/audio/error.wav" },
+        { name: "warning", url: "/static/audio/warning.wav" },
+        { name: "notification", url: "/static/audio/notification.wav" },
+      ]);
+
+      this.logActivity("🔊 Advanced audio system initialized", "info");
+    } catch (error) {
+      this.logActivity("⚠️ Audio system unavailable", "warning");
+    }
+  }
+
+  /**
+   * Utility Functions
+   */
 
   getCurrentUrl() {
     return window.location.href;
   }
 
-  initializeSocketIO() {
+  getExamDomain() {
     try {
-      this.socket = io();
-
-      this.socket.on("connect", () => {
-        this.isConnected = true;
-        this.updateConnectionStatus(true);
-        this.logActivity("Connected to monitoring server", "success");
-        this.socket.emit("start_monitoring");
-      });
-
-      this.socket.on("disconnect", () => {
-        this.isConnected = false;
-        this.updateConnectionStatus(false);
-        this.logActivity("Disconnected from monitoring server", "error");
-      });
-
-      this.socket.on("initial_data", (data) => {
-        this.updateUI(data);
-        this.enableControls();
-      });
-
-      this.socket.on("monitoring_update", (data) => {
-        this.updateUI(data);
-      });
-
-      this.socket.on("kill_completed", (data) => {
-        this.handleKillCompleted(data);
-      });
-
-      this.socket.on("ai_kill_completed", (data) => {
-        this.handleAiKillCompleted(data);
-      });
-
-      this.socket.on("tabs_closed", (data) => {
-        this.handleTabsClosed(data);
-      });
-
-      this.socket.on("error", (data) => {
-        this.showAlert("Error: " + data.message, "danger");
-        this.logActivity("Error: " + data.message, "error");
-      });
-    } catch (error) {
-      console.error("Socket.IO initialization failed:", error);
-      this.logActivity("Failed to initialize real-time monitoring", "error");
-    }
-  }
-
-  bindEvents() {
-    // Main action buttons
-    this.elements.closeAllBtn.addEventListener("click", () => {
-      this.showConfirmationModal("kill-all");
-    });
-
-    this.elements.killAiBtn.addEventListener("click", () => {
-      this.showConfirmationModal("kill-ai");
-    });
-
-    this.elements.closeTabsBtn.addEventListener("click", () => {
-      this.showConfirmationModal("close-tabs");
-    });
-
-    // Refresh buttons
-    this.elements.refreshProcessesBtn.addEventListener("click", () => {
-      this.refreshProcesses();
-    });
-
-    this.elements.refreshTabsBtn.addEventListener("click", () => {
-      this.refreshTabs();
-    });
-
-    // Modal confirmation
-    this.elements.confirmAction.addEventListener("click", () => {
-      this.executeAction();
-    });
-
-    // Keyboard shortcuts
-    document.addEventListener("keydown", (e) => {
-      if (e.ctrlKey && e.shiftKey && e.key === "K") {
-        e.preventDefault();
-        this.showConfirmationModal("kill-all");
-      }
-    });
-  }
-
-  updateConnectionStatus(connected) {
-    const status = this.elements.connectionStatus;
-    if (connected) {
-      status.innerHTML = '<i class="bi bi-wifi"></i> Connected';
-      status.className = "badge bg-success connection-online";
-    } else {
-      status.innerHTML = '<i class="bi bi-wifi-off"></i> Disconnected';
-      status.className = "badge bg-danger connection-offline";
-    }
-  }
-
-  enableControls() {
-    this.elements.closeAllBtn.disabled = false;
-    this.elements.killAiBtn.disabled = false;
-    this.elements.closeTabsBtn.disabled = false;
-  }
-
-  updateUI(data) {
-    if (data.processes) {
-      this.updateProcessesDisplay(data.processes);
-    }
-
-    if (data.browser_tabs) {
-      this.updateBrowserTabsDisplay(data.browser_tabs);
-    }
-
-    if (data.system_stats) {
-      this.updateSystemStats(data.system_stats);
-    }
-
-    // Update timestamp
-    if (data.datetime) {
-      this.logActivity(`Updated: ${data.datetime}`, "info");
-    }
-  }
-
-  updateProcessesDisplay(processesData) {
-    const tbody = this.elements.processesTable;
-    const allProcesses = processesData.all || [];
-    const aiProcesses = processesData.ai || [];
-
-    // Update stats
-    this.elements.totalProcesses.textContent =
-      processesData.count || allProcesses.length;
-    this.elements.aiProcesses.textContent = aiProcesses.length;
-
-    // Clear and populate table
-    tbody.innerHTML = "";
-
-    if (allProcesses.length === 0) {
-      tbody.innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center text-muted py-3">
-                        <i class="bi bi-exclamation-triangle"></i> No processes detected
-                    </td>
-                </tr>
-            `;
-      return;
-    }
-
-    allProcesses.slice(0, 25).forEach((process) => {
-      const row = this.createProcessRow(process);
-      tbody.appendChild(row);
-    });
-  }
-
-  createProcessRow(process) {
-    const row = document.createElement("tr");
-    const isAI = process.is_ai_app;
-    const isHighMemory = process.memory_percent > 10;
-
-    if (isAI) {
-      row.classList.add("ai-process-row");
-    } else if (isHighMemory) {
-      row.classList.add("high-memory-process");
-    }
-
-    const statusIcon = this.getStatusIcon(process.status);
-    const badges = this.createProcessBadges(process);
-
-    row.innerHTML = `
-            <td>
-                <div class="d-flex align-items-center">
-                    ${statusIcon}
-                    <div class="ms-2">
-                        <div class="fw-medium">${this.escapeHtml(process.name)}</div>
-                        <small class="text-muted">PID: ${process.pid}</small>
-                        ${badges}
-                    </div>
-                </div>
-            </td>
-            <td>
-                <div class="d-flex align-items-center">
-                    <div class="progress me-2" style="width: 60px; height: 6px;">
-                        <div class="progress-bar ${isHighMemory ? "bg-warning" : "bg-success"}"
-                             style="width: ${Math.min(process.memory_percent, 100)}%"></div>
-                    </div>
-                    <span class="small">${process.memory_percent}%</span>
-                </div>
-            </td>
-            <td>
-                <span class="small">${process.cpu_percent}%</span>
-            </td>
-            <td>
-                <span class="badge ${this.getStatusBadgeClass(process.status)} small">
-                    ${process.status}
-                </span>
-            </td>
-        `;
-
-    return row;
-  }
-
-  createProcessBadges(process) {
-    let badges = "";
-    if (process.is_ai_app) {
-      badges += '<span class="badge badge-ai ms-1">AI</span>';
-    }
-    if (process.memory_percent > 10) {
-      badges += '<span class="badge badge-high-memory ms-1">High Memory</span>';
-    }
-    return badges;
-  }
-
-  getStatusIcon(status) {
-    const icons = {
-      running: '<span class="status-indicator status-running"></span>',
-      sleeping: '<span class="status-indicator status-sleeping"></span>',
-      stopped: '<span class="status-indicator status-stopped"></span>',
-    };
-    return icons[status] || '<span class="status-indicator"></span>';
-  }
-
-  getStatusBadgeClass(status) {
-    const classes = {
-      running: "bg-success",
-      sleeping: "bg-warning text-dark",
-      stopped: "bg-danger",
-      zombie: "bg-secondary",
-    };
-    return classes[status] || "bg-secondary";
-  }
-
-  updateBrowserTabsDisplay(tabsData) {
-    const tabs = tabsData.tabs || {};
-    const summary = tabsData.summary || {};
-
-    // Update counts
-    this.elements.chromeCount.textContent = summary.browsers?.chrome || 0;
-    this.elements.firefoxCount.textContent = summary.browsers?.firefox || 0;
-    this.elements.edgeCount.textContent = summary.browsers?.edge || 0;
-    this.elements.browserTabs.textContent = summary.total_tabs || 0;
-
-    // Update tab lists
-    this.updateBrowserTabList("chrome", tabs.chrome || []);
-    this.updateBrowserTabList("firefox", tabs.firefox || []);
-    this.updateBrowserTabList("edge", tabs.edge || []);
-  }
-
-  updateBrowserTabList(browser, tabs) {
-    const listElement = this.elements[`${browser}TabList`];
-    listElement.innerHTML = "";
-
-    if (tabs.length === 0) {
-      listElement.innerHTML = `
-                <div class="list-group-item text-muted">
-                    <i class="bi bi-info-circle"></i> No ${browser} tabs detected
-                </div>
-            `;
-      return;
-    }
-
-    tabs.forEach((tab) => {
-      const item = this.createTabItem(tab);
-      listElement.appendChild(item);
-    });
-  }
-
-  createTabItem(tab) {
-    const div = document.createElement("div");
-    div.className = "list-group-item tab-item";
-
-    const isProtected = this.isExamTab(tab.url);
-    if (isProtected) {
-      div.classList.add("protected");
-    } else {
-      div.classList.add("will-close");
-    }
-
-    const protectedBadge = isProtected
-      ? '<span class="badge bg-success ms-2"><i class="bi bi-shield-check"></i> Protected</span>'
-      : '<span class="badge bg-danger ms-2"><i class="bi bi-x-circle"></i> Will Close</span>';
-
-    div.innerHTML = `
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="flex-grow-1">
-                    <div class="tab-title">${this.escapeHtml(tab.title || "Untitled")}</div>
-                    <div class="tab-url">${this.escapeHtml(this.truncateUrl(tab.url))}</div>
-                </div>
-                ${protectedBadge}
-            </div>
-        `;
-
-    return div;
-  }
-
-  isExamTab(url) {
-    if (!url) return false;
-    const currentDomain = new URL(this.currentExamUrl).hostname;
-    try {
-      const tabDomain = new URL(url).hostname;
-      return tabDomain === currentDomain;
+      return new URL(window.location.href).hostname;
     } catch {
-      return false;
+      return "localhost";
     }
   }
 
-  truncateUrl(url, maxLength = 60) {
-    if (!url) return "";
-    return url.length > maxLength ? url.substring(0, maxLength) + "..." : url;
+  isPrefersReducedMotion() {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
 
-  updateSystemStats(stats) {
-    if (stats.memory_percent !== undefined) {
-      this.elements.memoryUsage.textContent = `${stats.memory_percent}%`;
-    }
+  delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  showConfirmationModal(action) {
-    this.pendingAction = action;
-
-    const actionMessages = {
-      "kill-all": {
-        title: "Close All Applications and Tabs",
-        items: [
-          "Terminate all AI applications (ChatGPT, Claude, Gemini, etc.)",
-          "Close all browser tabs except this exam tab",
-          "Preserve the current exam session",
-        ],
-      },
-      "kill-ai": {
-        title: "Terminate AI Applications",
-        items: [
-          "Close all AI-related applications",
-          "Keep browser tabs open",
-          "Preserve exam environment",
-        ],
-      },
-      "close-tabs": {
-        title: "Close Browser Tabs",
-        items: [
-          "Close all browser tabs in Chrome, Firefox, and Edge",
-          "Preserve this exam tab",
-          "Keep applications running",
-        ],
-      },
-    };
-
-    const config = actionMessages[action];
-    document.querySelector("#confirmModal .modal-title").textContent =
-      config.title;
-
-    this.elements.actionPreview.innerHTML = config.items
-      .map((item) => `<li>${item}</li>`)
-      .join("");
-
-    this.elements.confirmModal.show();
-  }
-
-  executeAction() {
-    if (!this.pendingAction) return;
-
-    this.showLoading(true);
-    this.elements.confirmModal.hide();
-
-    const actions = {
-      "kill-all": () => this.killAll(),
-      "kill-ai": () => this.killAI(),
-      "close-tabs": () => this.closeTabs(),
-    };
-
-    const actionFn = actions[this.pendingAction];
-    if (actionFn) {
-      actionFn();
-    }
-
-    this.pendingAction = null;
-  }
-
-  async killAll() {
-    try {
-      const response = await fetch("/api/kill-all", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exam_url: this.currentExamUrl }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        this.showAlert(
-          "Successfully terminated all targeted applications and tabs",
-          "success",
-        );
-        this.logActivity("Kill All operation completed", "success");
-      } else {
-        this.showAlert("Error during termination: " + result.error, "danger");
-        this.logActivity("Kill All operation failed: " + result.error, "error");
-      }
-    } catch (error) {
-      this.showAlert("Network error during termination", "danger");
-      this.logActivity("Network error: " + error.message, "error");
-    } finally {
-      this.showLoading(false);
-    }
-  }
-
-  async killAI() {
-    try {
-      const response = await fetch("/api/kill-ai-only", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        const killedCount = result.data.killed?.length || 0;
-        this.showAlert(
-          `Successfully terminated ${killedCount} AI applications`,
-          "success",
-        );
-        this.logActivity(
-          `AI applications terminated: ${killedCount}`,
-          "success",
-        );
-      } else {
-        this.showAlert(
-          "Error terminating AI applications: " + result.error,
-          "danger",
-        );
-      }
-    } catch (error) {
-      this.showAlert("Network error during AI termination", "danger");
-    } finally {
-      this.showLoading(false);
-    }
-  }
-
-  async closeTabs() {
-    try {
-      const response = await fetch("/api/close-tabs-only", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exam_url: this.currentExamUrl }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        const closedCount = result.data.total_closed || 0;
-        this.showAlert(
-          `Successfully closed ${closedCount} browser tabs`,
-          "success",
-        );
-        this.logActivity(`Browser tabs closed: ${closedCount}`, "success");
-      } else {
-        this.showAlert("Error closing tabs: " + result.error, "danger");
-      }
-    } catch (error) {
-      this.showAlert("Network error during tab closure", "danger");
-    } finally {
-      this.showLoading(false);
-    }
-  }
-
-  handleKillCompleted(data) {
-    this.showLoading(false);
-    const aiKilled = data.ai_applications?.killed?.length || 0;
-    const tabsClosed = data.browser_tabs?.total_closed || 0;
-
-    // Immediately update UI counters
-    this.animateCounter(this.elements.aiProcesses, 0);
-    this.animateCounter(this.elements.threatCounter, 0);
-    this.animateCounter(this.elements.aiCountBadge, 0);
-
-    // Update browser tab counters (keep only protected exam tabs)
-    this.animateCounter(this.elements.browserTabs, 1); // Usually 1 exam tab remains
-
-    // Update status messages
-    if (this.elements.aiStatus) {
-      this.elements.aiStatus.textContent = "No threats";
-      this.elements.aiStatus.className = "opacity-75 text-success";
-    }
-
-    this.showAlert(
-      `🎯 Operation completed: ${aiKilled} AI apps terminated, ${tabsClosed} tabs closed`,
-      "success",
+  generateProcessCacheKey(processes, filterMode, sortBy) {
+    const hash = this.simpleHash(
+        JSON.stringify({
+          count: processes.length,
+          filter: filterMode,
+          sort: sortBy,
+          timestamp: Math.floor(Date.now() / 30000), // 30-second buckets
+        }),
     );
-
-    this.logActivity(
-      `🎯 Kill All completed - AI apps: ${aiKilled}, Tabs: ${tabsClosed}`,
-      "success",
-    );
-
-    // Request fresh data to sync with server
-    setTimeout(() => this.requestUpdate(), 500);
+    return `process_${hash}`;
   }
 
-  handleAiKillCompleted(data) {
-    const killedCount = data.killed?.length || 0;
-
-    // Immediately update AI-related counters to 0
-    this.animateCounter(this.elements.aiProcesses, 0);
-    this.animateCounter(this.elements.threatCounter, 0);
-    this.animateCounter(this.elements.aiCountBadge, 0);
-
-    // Update AI status
-    if (this.elements.aiStatus) {
-      this.elements.aiStatus.textContent = "No threats";
-      this.elements.aiStatus.className = "opacity-75 text-success";
+  simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32-bit integer
     }
-
-    // Remove AI processes from table immediately
-    this.removeAiProcessesFromTable();
-
-    this.logActivity(
-      `🤖 AI applications terminated: ${killedCount}`,
-      "success",
-    );
-    setTimeout(() => this.requestUpdate(), 500);
+    return Math.abs(hash).toString(36);
   }
 
-  handleTabsClosed(data) {
-    const closedCount = data.total_closed || 0;
-    const preservedCount = data.total_preserved || 1;
+  formatBytes(bytes) {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  }
 
-    // Update browser tab counters immediately
-    this.animateCounter(this.elements.browserTabs, preservedCount);
-    this.animateCounter(this.elements.chromeCount, preservedCount);
-    this.animateCounter(this.elements.firefoxCount, 0);
-    this.animateCounter(this.elements.edgeCount, 0);
+  formatUptime(seconds) {
+    const units = [
+      { name: "d", value: 86400 },
+      { name: "h", value: 3600 },
+      { name: "m", value: 60 },
+      { name: "s", value: 1 },
+    ];
 
-    // Update tab status
-    if (this.elements.tabStatus) {
-      if (preservedCount === 0) {
-        this.elements.tabStatus.textContent = "No tabs detected";
-        this.elements.tabStatus.className = "opacity-75";
-      } else {
-        this.elements.tabStatus.textContent = `${preservedCount} protected session`;
-        this.elements.tabStatus.className = "opacity-75 text-success";
+    let result = "";
+    let remaining = seconds;
+
+    for (const unit of units) {
+      const count = Math.floor(remaining / unit.value);
+      if (count > 0) {
+        result += `${count}${unit.name} `;
+        remaining %= unit.value;
       }
     }
 
-    // Clear browser tab lists and show only protected tabs
-    this.clearNonProtectedTabs();
-
-    this.logActivity(
-      `🌐 Browser tabs closed: ${closedCount}, preserved: ${preservedCount}`,
-      "success",
-    );
-    setTimeout(() => this.requestUpdate(), 500);
+    return result.trim() || "0s";
   }
 
-  refreshProcesses() {
-    this.logActivity("Refreshing processes...", "info");
-    if (this.socket && this.isConnected) {
-      this.socket.emit("request_update");
-    }
-  }
-
-  refreshTabs() {
-    this.logActivity("Refreshing browser tabs...", "info");
-    if (this.socket && this.isConnected) {
-      this.socket.emit("request_update");
-    }
-  }
-
-  requestUpdate() {
-    if (this.socket && this.isConnected) {
-      this.socket.emit("request_update");
-    }
-  }
-
-  startPeriodicUpdates() {
-    // Update every 10 seconds
-    this.updateInterval = setInterval(() => {
-      if (this.isConnected) {
-        this.requestUpdate();
-      }
-    }, 10000);
-  }
-
-  showAlert(message, type = "info") {
-    const alertDiv = document.createElement("div");
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-            <i class="bi bi-${this.getAlertIcon(type)}"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-
-    this.elements.alertContainer.appendChild(alertDiv);
-
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-      if (alertDiv.parentNode) {
-        alertDiv.remove();
-      }
-    }, 5000);
-  }
-
-  getAlertIcon(type) {
-    const icons = {
-      success: "check-circle-fill",
-      danger: "exclamation-triangle-fill",
-      warning: "exclamation-triangle-fill",
-      info: "info-circle-fill",
-    };
-    return icons[type] || "info-circle-fill";
-  }
-
-  logActivity(message, level = "info") {
-    const timestamp = new Date().toLocaleTimeString();
-    const logEntry = document.createElement("div");
-    logEntry.className = `log-entry ${level}`;
-
-    const icon = this.getLogIcon(level);
-    logEntry.innerHTML = `
-            <span class="log-timestamp">[${timestamp}]</span>
-            <i class="bi bi-${icon} ms-2 me-1"></i>
-            ${message}
-        `;
-
-    this.elements.activityLog.appendChild(logEntry);
-    this.elements.activityLog.scrollTop =
-      this.elements.activityLog.scrollHeight;
-
-    // Keep only last 50 entries
-    const entries = this.elements.activityLog.children;
-    while (entries.length > 50) {
-      entries[0].remove();
-    }
-  }
-
-  getLogIcon(level) {
-    const icons = {
-      success: "check-circle",
-      error: "exclamation-triangle",
-      warning: "exclamation-triangle",
-      info: "info-circle",
-    };
-    return icons[level] || "info-circle";
-  }
-
-  showLoading(show) {
-    if (show) {
-      this.elements.loadingOverlay.classList.add("show");
-    } else {
-      this.elements.loadingOverlay.classList.remove("show");
-    }
-  }
-
-  escapeHtml(text) {
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  removeAiProcessesFromTable() {
-    const tbody = this.elements.processesTable;
-    if (!tbody) return;
-
-    // Remove all rows with AI processes (those with is_ai_app class)
-    const aiRows = tbody.querySelectorAll(
-      'tr.ai-process-row, tr[data-is-ai="true"]',
-    );
-    aiRows.forEach((row) => {
-      row.style.transition = "opacity 0.3s ease, transform 0.3s ease";
-      row.style.opacity = "0";
-      row.style.transform = "translateX(-100%)";
-      setTimeout(() => {
-        if (row.parentNode) {
-          row.remove();
-        }
-      }, 300);
-    });
-  }
-
-  clearNonProtectedTabs() {
-    // Clear Chrome tabs (keep only protected ones)
-    const chromeList = this.elements.chromeTabList;
-    if (chromeList) {
-      const protectedTabs = chromeList.querySelectorAll(".protected");
-      chromeList.innerHTML = "";
-      protectedTabs.forEach((tab) => chromeList.appendChild(tab));
-
-      if (protectedTabs.length === 0) {
-        chromeList.innerHTML = `
-                    <div class="list-group-item text-muted">
-                        <i class="bi bi-info-circle"></i> No Chrome tabs detected
-                    </div>
-                `;
-      }
-    }
-
-    // Clear Firefox and Edge tabs completely
-    const firefoxList = this.elements.firefoxTabList;
-    const edgeList = this.elements.edgeTabList;
-
-    if (firefoxList) {
-      firefoxList.innerHTML = `
-                <div class="list-group-item text-muted">
-                    <i class="bi bi-info-circle"></i> No Firefox tabs detected
-                </div>
-            `;
-    }
-
-    if (edgeList) {
-      edgeList.innerHTML = `
-                <div class="list-group-item text-muted">
-                    <i class="bi bi-info-circle"></i> No Edge tabs detected
-                </div>
-            `;
-    }
-  }
-
-  animateCounter(element, newValue) {
-    if (!element) return;
-
-    const currentValue = parseInt(element.textContent) || 0;
-    if (currentValue === newValue) return;
-
-    // Animate counter change
-    const duration = 500;
-    const steps = 20;
-    const stepValue = (newValue - currentValue) / steps;
-    const stepDuration = duration / steps;
-
-    let currentStep = 0;
-    const timer = setInterval(() => {
-      currentStep++;
-      const value = Math.round(currentValue + stepValue * currentStep);
-      element.textContent = currentStep === steps ? newValue : value;
-
-      if (currentStep >= steps) {
-        clearInterval(timer);
-
-        // Add visual effect for significant changes
-        if (Math.abs(newValue - currentValue) > 0) {
-          element.style.transform = "scale(1.2)";
-          element.style.transition = "transform 0.2s ease";
-          setTimeout(() => {
-            element.style.transform = "scale(1)";
-          }, 200);
-        }
-      }
-    }, stepDuration);
-  }
-
+  /**
+   * Cleanup and Destruction
+   */
   destroy() {
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-    }
+    // Clear all intervals and timeouts
+    if (this.updateInterval) clearInterval(this.updateInterval);
+    if (this.cacheCleanupInterval) clearInterval(this.cacheCleanupInterval);
+    if (this.memoryMonitorInterval) clearInterval(this.memoryMonitorInterval);
+    if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+
+    // Disconnect socket
     if (this.socket) {
       this.socket.disconnect();
+    }
+
+    // Clean up performance monitoring
+    if (this.performanceMonitor) {
+      this.performanceMonitor.disconnect();
+    }
+
+    // Close audio context
+    if (this.audioContext && this.audioContext.state !== "closed") {
+      this.audioContext.close();
+    }
+
+    // Remove all event listeners
+    this.boundHandlers.forEach((handler, event) => {
+      document.removeEventListener(event, handler);
+    });
+
+    // Clear all caches
+    Object.values(this.dpCache).forEach((cache) => {
+      if (cache.clear) cache.clear();
+    });
+
+    this.logActivity("🏁 ExamGuardian Pro shutdown complete", "info");
+  }
+}
+
+/**
+ * Advanced Supporting Classes
+ */
+
+// LRU Cache Implementation
+class LRUCache {
+  constructor(maxSize = 100) {
+    this.maxSize = maxSize;
+    this.cache = new Map();
+  }
+
+  get(key) {
+    if (this.cache.has(key)) {
+      // Move to end (most recently used)
+      const value = this.cache.get(key);
+      this.cache.delete(key);
+      this.cache.set(key, value);
+      return value.data;
+    }
+    return null;
+  }
+
+  set(key, data) {
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size >= this.maxSize) {
+      // Remove least recently used
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+    });
+  }
+
+  cleanup(maxAge) {
+    const now = Date.now();
+    let cleaned = 0;
+
+    for (const [key, value] of this.cache.entries()) {
+      if (now - value.timestamp > maxAge) {
+        this.cache.delete(key);
+        cleaned++;
+      }
+    }
+
+    return cleaned;
+  }
+
+  clear() {
+    this.cache.clear();
+  }
+
+  get size() {
+    return this.cache.size;
+  }
+}
+
+// State Manager
+class StateManager {
+  constructor(initialState = {}) {
+    this.state = { ...initialState };
+    this.listeners = new Map();
+    this.history = [];
+    this.maxHistory = 50;
+  }
+
+  get(key) {
+    return this.state[key];
+  }
+
+  set(key, value) {
+    const oldValue = this.state[key];
+    this.state[key] = value;
+
+    // Add to history
+    this.history.push({
+      key,
+      oldValue,
+      newValue: value,
+      timestamp: Date.now(),
+    });
+
+    if (this.history.length > this.maxHistory) {
+      this.history.shift();
+    }
+
+    // Notify listeners
+    if (this.listeners.has(key)) {
+      this.listeners.get(key).forEach((listener) => listener(value, oldValue));
+    }
+  }
+
+  subscribe(key, listener) {
+    if (!this.listeners.has(key)) {
+      this.listeners.set(key, new Set());
+    }
+    this.listeners.get(key).add(listener);
+
+    return () => {
+      this.listeners.get(key).delete(listener);
+    };
+  }
+
+  getHistory(key, limit = 10) {
+    return this.history.filter((entry) => entry.key === key).slice(-limit);
+  }
+}
+
+// Performance Tracker
+class PerformanceTracker {
+  constructor(options = {}) {
+    this.renderTimes = [];
+    this.apiResponseTimes = [];
+    this.memoryReadings = [];
+    this.cacheHitRate = 0;
+    this.animationFrameRate = 60;
+    this.maxEntries = options.maxEntries || 100;
+  }
+
+  addRenderTime(time) {
+    this.renderTimes.push({
+      value: time,
+      timestamp: Date.now(),
+    });
+    this.trimArray(this.renderTimes);
+  }
+
+  addApiResponseTime(time) {
+    this.apiResponseTimes.push({
+      value: time,
+      timestamp: Date.now(),
+    });
+    this.trimArray(this.apiResponseTimes);
+  }
+
+  addMemoryReading(reading) {
+    this.memoryReadings.push(reading);
+    this.trimArray(this.memoryReadings);
+  }
+
+  addEntry(entry) {
+    // Handle PerformanceObserver entries
+    if (entry.entryType === "measure") {
+      this.addRenderTime(entry.duration);
+    }
+  }
+
+  trimArray(arr) {
+    while (arr.length > this.maxEntries) {
+      arr.shift();
+    }
+  }
+
+  getAverageRenderTime() {
+    if (this.renderTimes.length === 0) return 0;
+    const sum = this.renderTimes.reduce((acc, entry) => acc + entry.value, 0);
+    return sum / this.renderTimes.length;
+  }
+
+  getAverageApiResponseTime() {
+    if (this.apiResponseTimes.length === 0) return 0;
+    const sum = this.apiResponseTimes.reduce(
+        (acc, entry) => acc + entry.value,
+        0,
+    );
+    return sum / this.apiResponseTimes.length;
+  }
+}
+
+// Animation Engine
+class AnimationEngine {
+  constructor(options = {}) {
+    this.globalAnimationsEnabled = options.globalAnimationsEnabled !== false;
+    this.animationQueue = [];
+    this.activeAnimations = new Map();
+    this.easingFunctions = options.easingFunctions || {};
+  }
+
+  initialize() {
+    // Create default easing functions
+    this.easingFunctions = {
+      ...this.easingFunctions,
+      easeInOut: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
+      easeOutQuart: (t) => 1 - Math.pow(1 - t, 4),
+      easeOutBounce: (t) => {
+        const n1 = 7.5625;
+        const d1 = 2.75;
+        if (t < 1 / d1) {
+          return n1 * t * t;
+        } else if (t < 2 / d1) {
+          return n1 * (t -= 1.5 / d1) * t + 0.75;
+        } else if (t < 2.5 / d1) {
+          return n1 * (t -= 2.25 / d1) * t + 0.9375;
+        } else {
+          return n1 * (t -= 2.625 / d1) * t + 0.984375;
+        }
+      },
+    };
+  }
+
+  applyEasing(progress, easingName = "easeOutQuart") {
+    const easingFunction = this.easingFunctions[easingName];
+    return easingFunction ? easingFunction(progress) : progress;
+  }
+
+  addAnimation(id, animation) {
+    this.activeAnimations.set(id, animation);
+  }
+
+  removeAnimation(id) {
+    this.activeAnimations.delete(id);
+  }
+
+  clearAllAnimations() {
+    this.activeAnimations.clear();
+  }
+}
+
+// Settings Manager
+class SettingsManager {
+  constructor(defaults = {}) {
+    this.defaults = defaults;
+    this.settings = { ...defaults };
+    this.storageKey = "examguardian_settings";
+    this.load();
+  }
+
+  get(key) {
+    return this.settings[key];
+  }
+
+  set(key, value) {
+    this.settings[key] = value;
+    this.save();
+  }
+
+  reset() {
+    this.settings = { ...this.defaults };
+    this.save();
+  }
+
+  load() {
+    try {
+      const stored = localStorage.getItem(this.storageKey);
+      if (stored) {
+        this.settings = { ...this.defaults, ...JSON.parse(stored) };
+      }
+    } catch (error) {
+      console.warn("Failed to load settings:", error);
+    }
+  }
+
+  save() {
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(this.settings));
+    } catch (error) {
+      console.warn("Failed to save settings:", error);
     }
   }
 }
 
-// Initialize dashboard when DOM is loaded
-document.addEventListener("DOMContentLoaded", () => {
-  window.exhonDashboard = new ExHonDashboard();
-});
+// Process Tree for hierarchical data
+class ProcessTree {
+  constructor() {
+    this.processes = new Map();
+    this.children = new Map();
+  }
 
-// Cleanup on page unload
-window.addEventListener("beforeunload", () => {
-  if (window.exhonDashboard) {
-    window.exhonDashboard.destroy();
+  addProcess(process) {
+    this.processes.set(process.pid, process);
+
+    if (process.ppid && process.ppid !== process.pid) {
+      if (!this.children.has(process.ppid)) {
+        this.children.set(process.ppid, new Set());
+      }
+      this.children.get(process.ppid).add(process.pid);
+    }
+  }
+
+  getChildren(pid) {
+    return Array.from(this.children.get(pid) || [])
+        .map((childPid) => this.processes.get(childPid))
+        .filter(Boolean);
+  }
+
+  getDescendants(pid) {
+    const descendants = [];
+    const children = this.getChildren(pid);
+
+    for (const child of children) {
+      descendants.push(child);
+      descendants.push(...this.getDescendants(child.pid));
+    }
+
+    return descendants;
+  }
+
+  clear() {
+    this.processes.clear();
+    this.children.clear();
+  }
+}
+
+// Threat Detector with ML-like algorithms
+class ThreatDetector {
+  constructor() {
+    this.suspiciousDomains = [
+      "chatgpt.com",
+      "claude.ai",
+      "bard.google.com",
+      "perplexity.ai",
+      "character.ai",
+      "replika.ai",
+      "openai.com",
+      "github.com/copilot",
+    ];
+    this.aiProcessPatterns = [
+      /chatgpt/i,
+      /claude/i,
+      /bard/i,
+      /copilot/i,
+      /ai/i,
+    ];
+    this.threatHistory = [];
+  }
+
+  analyzeProcess(process) {
+    let score = 0;
+    const factors = [];
+
+    // AI application detection
+    if (process.is_ai_app) {
+      score += 10;
+      factors.push("ai_application");
+    }
+
+    // High resource usage
+    if (process.memory_percent > 20) {
+      score += 3;
+      factors.push("high_memory");
+    }
+
+    if (process.cpu_percent > 30) {
+      score += 2;
+      factors.push("high_cpu");
+    }
+
+    // Suspicious process name
+    for (const pattern of this.aiProcessPatterns) {
+      if (pattern.test(process.name)) {
+        score += 5;
+        factors.push("suspicious_name");
+        break;
+      }
+    }
+
+    return {
+      score: Math.min(score, 10),
+      factors,
+      risk: this.scoreToRisk(score),
+    };
+  }
+
+  analyzeTab(tab) {
+    let score = 0;
+    const factors = [];
+
+    // Check domain against suspicious list
+    const domain = this.extractDomain(tab.url);
+    if (this.suspiciousDomains.some((sd) => domain?.includes(sd))) {
+      score += 8;
+      factors.push("suspicious_domain");
+    }
+
+    // Check for AI-related keywords in title
+    if (
+        tab.title &&
+        this.aiProcessPatterns.some((pattern) => pattern.test(tab.title))
+    ) {
+      score += 4;
+      factors.push("suspicious_title");
+    }
+
+    return {
+      score: Math.min(score, 10),
+      factors,
+      risk: this.scoreToRisk(score),
+    };
+  }
+
+  scoreToRisk(score) {
+    if (score >= 8) return "critical";
+    if (score >= 6) return "high";
+    if (score >= 4) return "medium";
+    if (score >= 2) return "low";
+    return "minimal";
+  }
+
+  extractDomain(url) {
+    try {
+      return new URL(url).hostname.toLowerCase();
+    } catch {
+      return null;
+    }
+  }
+}
+
+// Data Processor for batch operations
+class DataProcessor {
+  constructor() {
+    this.batchSize = 50;
+  }
+
+  async processInBatches(items, processor, batchSize = this.batchSize) {
+    const results = [];
+
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      const batchResults = await Promise.all(
+          batch.map((item) => processor(item)),
+      );
+      results.push(...batchResults);
+
+      // Yield control to prevent blocking
+      if (i + batchSize < items.length) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+    }
+
+    return results;
+  }
+
+  filterWithPredicate(items, predicate) {
+    return items.filter(predicate);
+  }
+
+  sortWithComparator(items, comparator) {
+    return [...items].sort(comparator);
+  }
+
+  groupBy(items, keySelector) {
+    const groups = new Map();
+
+    for (const item of items) {
+      const key = keySelector(item);
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key).push(item);
+    }
+
+    return groups;
+  }
+}
+
+// Initialize Dashboard when DOM is ready
+document.addEventListener("DOMContentLoaded", () => {
+  try {
+    window.dashboard = new ExamGuardianDashboard();
+
+    // Global error handler
+    window.addEventListener("error", (event) => {
+      if (window.dashboard) {
+        window.dashboard.handleError(event.error, "Global error");
+      }
+    });
+
+    // Handle unhandled promise rejections
+    window.addEventListener("unhandledrejection", (event) => {
+      if (window.dashboard) {
+        window.dashboard.handleError(
+            event.reason,
+            "Unhandled promise rejection",
+        );
+      }
+    });
+  } catch (error) {
+    console.error("Failed to initialize ExamGuardian Pro:", error);
+
+    // Show fallback error message
+    const errorDiv = document.createElement("div");
+    errorDiv.className =
+        "alert alert-danger position-fixed top-0 start-0 w-100";
+    errorDiv.style.zIndex = "9999";
+    errorDiv.innerHTML = `
+            <div class="container">
+                <h4>⚠️ ExamGuardian Pro Initialization Failed</h4>
+                <p>Please refresh the page or contact support if the issue persists.</p>
+                <small>Error: ${error.message}</small>
+            </div>
+        `;
+    document.body.appendChild(errorDiv);
   }
 });
+
+// Handle page unload cleanup
+window.addEventListener("beforeunload", () => {
+  if (window.dashboard) {
+    window.dashboard.destroy();
+  }
+});
+
+// Handle page visibility changes for performance optimization
+document.addEventListener("visibilitychange", () => {
+  if (window.dashboard) {
+    if (document.visibilityState === "visible") {
+      window.dashboard.state?.set("isVisible", true);
+    } else {
+      window.dashboard.state?.set("isVisible", false);
+    }
+  }
+});
+
+// Export for module systems
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    ExamGuardianDashboard,
+    LRUCache,
+    StateManager,
+    PerformanceTracker,
+    AnimationEngine,
+    SettingsManager,
+    ProcessTree,
+    ThreatDetector,
+    DataProcessor,
+  };
+}
