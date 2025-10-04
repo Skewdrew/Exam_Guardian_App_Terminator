@@ -33,6 +33,14 @@ monitor = get_monitor_instance()
 killer = get_killer_instance()
 monitoring_active = False
 update_thread = None
+demo_mode_enabled = False
+demo_ai_processes = []
+demo_browser_tabs = {
+    'chrome': [],
+    'firefox': [],
+    'edge': []
+}
+demo_summary = {'total_tabs': 0, 'browsers': {'chrome': 0, 'firefox': 0, 'edge': 0}}
 
 @app.route('/')
 def index():
@@ -61,16 +69,22 @@ def get_system_info():
 def get_processes():
     """Get all running processes"""
     try:
-        processes = monitor.get_running_processes()
-        ai_processes = monitor.get_ai_processes()
+        if demo_mode_enabled:
+            # Return demo data
+            real_processes = monitor.get_running_processes()[:20]
+            all_processes = real_processes + demo_ai_processes
+        else:
+            processes = monitor.get_running_processes()
+            ai_processes = monitor.get_ai_processes()
+            all_processes = processes
 
         return jsonify({
             'success': True,
             'data': {
-                'all_processes': processes[:50],  # Limit to top 50 by memory
-                'ai_processes': ai_processes,
-                'total_count': len(processes),
-                'ai_count': len(ai_processes)
+                'all_processes': all_processes[:50],  # Limit to top 50 by memory
+                'ai_processes': demo_ai_processes if demo_mode_enabled else monitor.get_ai_processes(),
+                'total_count': len(all_processes),
+                'ai_count': len(demo_ai_processes) if demo_mode_enabled else len(monitor.get_ai_processes())
             },
             'timestamp': time.time()
         })
@@ -86,17 +100,28 @@ def get_processes():
 def get_browser_tabs():
     """Get all browser tabs"""
     try:
-        tabs = monitor.get_browser_tabs()
-        tab_summary = monitor.get_tab_summary()
+        if demo_mode_enabled:
+            # Return current demo tab data
+            return jsonify({
+                'success': True,
+                'data': {
+                    'tabs': demo_browser_tabs,
+                    'summary': demo_summary
+                },
+                'timestamp': time.time()
+            })
+        else:
+            tabs = monitor.get_browser_tabs()
+            tab_summary = monitor.get_tab_summary()
 
-        return jsonify({
-            'success': True,
-            'data': {
-                'tabs': tabs,
-                'summary': tab_summary
-            },
-            'timestamp': time.time()
-        })
+            return jsonify({
+                'success': True,
+                'data': {
+                    'tabs': tabs,
+                    'summary': tab_summary
+                },
+                'timestamp': time.time()
+            })
     except Exception as e:
         logger.error(f"Error getting browser tabs: {e}")
         return jsonify({
@@ -131,16 +156,48 @@ def get_termination_preview():
 @app.route('/api/kill-all', methods=['POST'])
 def kill_all():
     """Kill all targeted AI applications and browser tabs"""
+    global demo_ai_processes, demo_browser_tabs, demo_summary
     try:
         data = request.get_json() or {}
         exam_url = data.get('exam_url', '')
 
-        # Set the exam URL to protect
-        if exam_url:
-            killer.set_exam_domain(exam_url)
+        if demo_mode_enabled:
+            # In demo mode, simulate killing all
+            killed_ai_count = len(demo_ai_processes)
+            closed_tabs_count = demo_summary['total_tabs'] - 1  # Keep exam tab
 
-        # Perform the termination
-        results = killer.kill_all_targeted(exam_url)
+            # Clear demo AI processes
+            demo_ai_processes = []
+
+            # Clear demo browser tabs (keep exam tab)
+            exam_tabs = []
+            for browser, tabs in demo_browser_tabs.items():
+                browser_exam_tabs = [tab for tab in tabs if 'localhost:5000' in tab.get('url', '')]
+                demo_browser_tabs[browser] = browser_exam_tabs
+                exam_tabs.extend(browser_exam_tabs)
+
+            # Update summary
+            demo_summary = {
+                'total_tabs': len(exam_tabs),
+                'browsers': {
+                    'chrome': len([tab for tab in demo_browser_tabs['chrome']]),
+                    'firefox': len([tab for tab in demo_browser_tabs['firefox']]),
+                    'edge': len([tab for tab in demo_browser_tabs['edge']])
+                }
+            }
+
+            results = {
+                'ai_applications': {'killed': [{'name': f'Demo AI Process {i}'} for i in range(killed_ai_count)]},
+                'browser_tabs': {'total_closed': closed_tabs_count},
+                'success': True
+            }
+        else:
+            # Set the exam URL to protect
+            if exam_url:
+                killer.set_exam_domain(exam_url)
+
+            # Perform the termination
+            results = killer.kill_all_targeted(exam_url)
 
         # Emit real-time update to all connected clients
         socketio.emit('kill_completed', results)
@@ -162,8 +219,20 @@ def kill_all():
 @app.route('/api/kill-ai-only', methods=['POST'])
 def kill_ai_only():
     """Kill only AI applications, preserve browser tabs"""
+    global demo_ai_processes
     try:
-        results = killer.kill_ai_applications()
+        if demo_mode_enabled:
+            # In demo mode, simulate killing AI apps only
+            killed_count = len(demo_ai_processes)
+            demo_ai_processes = []  # Clear all AI processes
+
+            results = {
+                'killed': [{'name': f'Demo AI Process {i}'} for i in range(killed_count)],
+                'failed': [],
+                'not_found': []
+            }
+        else:
+            results = killer.kill_ai_applications()
 
         # Emit real-time update
         socketio.emit('ai_kill_completed', results)
@@ -185,14 +254,44 @@ def kill_ai_only():
 @app.route('/api/close-tabs-only', methods=['POST'])
 def close_tabs_only():
     """Close browser tabs only, preserve AI applications"""
+    global demo_browser_tabs, demo_summary
     try:
         data = request.get_json() or {}
         exam_url = data.get('exam_url', '')
 
-        if exam_url:
-            killer.set_exam_domain(exam_url)
+        if demo_mode_enabled:
+            # In demo mode, simulate closing tabs (keep exam tab)
+            closed_count = demo_summary['total_tabs'] - 1  # Keep exam tab
 
-        results = killer.close_browser_tabs(preserve_exam_tab=True)
+            # Keep only exam tabs
+            exam_tabs = []
+            for browser, tabs in demo_browser_tabs.items():
+                browser_exam_tabs = [tab for tab in tabs if 'localhost:5000' in tab.get('url', '')]
+                demo_browser_tabs[browser] = browser_exam_tabs
+                exam_tabs.extend(browser_exam_tabs)
+
+            # Update summary
+            demo_summary = {
+                'total_tabs': len(exam_tabs),
+                'browsers': {
+                    'chrome': len([tab for tab in demo_browser_tabs['chrome']]),
+                    'firefox': len([tab for tab in demo_browser_tabs['firefox']]),
+                    'edge': len([tab for tab in demo_browser_tabs['edge']])
+                }
+            }
+
+            results = {
+                'chrome': {'closed': closed_count, 'preserved': 1, 'errors': []},
+                'firefox': {'closed': 0, 'preserved': 0, 'errors': []},
+                'edge': {'closed': 0, 'preserved': 0, 'errors': []},
+                'total_closed': closed_count,
+                'total_preserved': 1
+            }
+        else:
+            if exam_url:
+                killer.set_exam_domain(exam_url)
+
+            results = killer.close_browser_tabs(preserve_exam_tab=True)
 
         # Emit real-time update
         socketio.emit('tabs_closed', results)
@@ -210,6 +309,103 @@ def close_tabs_only():
             'error': str(e),
             'timestamp': time.time()
         }), 500
+
+# Add demo mode route
+@app.route('/api/demo-mode', methods=['POST'])
+def enable_demo_mode():
+    """Enable demo mode with simulated AI threats"""
+    global demo_mode_enabled, demo_ai_processes, demo_browser_tabs, demo_summary
+    demo_mode_enabled = True
+
+    # Initialize fake AI processes
+    demo_ai_processes = [
+        {
+            'pid': 99999,
+            'name': 'ChatGPT.exe',
+            'memory_percent': 15.5,
+            'cpu_percent': 8.2,
+            'status': 'running',
+            'is_ai_app': True
+        },
+        {
+            'pid': 99998,
+            'name': 'Claude-Desktop.exe',
+            'memory_percent': 12.3,
+            'cpu_percent': 5.1,
+            'status': 'running',
+            'is_ai_app': True
+        },
+        {
+            'pid': 99997,
+            'name': 'GitHub-Copilot.exe',
+            'memory_percent': 8.7,
+            'cpu_percent': 3.2,
+            'status': 'running',
+            'is_ai_app': True
+        }
+    ]
+
+    # Initialize fake browser tabs
+    demo_browser_tabs = {
+        'chrome': [
+            {
+                'id': 'demo1',
+                'title': 'ChatGPT - OpenAI',
+                'url': 'https://chat.openai.com/chat',
+                'active': False
+            },
+            {
+                'id': 'demo2',
+                'title': 'Claude - Anthropic',
+                'url': 'https://claude.ai/chat',
+                'active': False
+            },
+            {
+                'id': 'demo3',
+                'title': 'Your Exam - Protected',
+                'url': 'http://localhost:5000/',
+                'active': True
+            }
+        ],
+        'firefox': [
+            {
+                'id': 'demo4',
+                'title': 'Gemini AI',
+                'url': 'https://gemini.google.com/',
+                'active': False
+            }
+        ],
+        'edge': []
+    }
+
+    # Initialize summary
+    demo_summary = {
+        'total_tabs': 4,
+        'browsers': {'chrome': 3, 'firefox': 1, 'edge': 0}
+    }
+
+    return jsonify({
+        'success': True,
+        'message': 'Demo mode enabled - fake AI threats created',
+        'demo_processes': demo_ai_processes,
+        'demo_tabs': demo_browser_tabs
+    })
+
+@app.route('/api/disable-demo-mode', methods=['POST'])
+def disable_demo_mode():
+    """Disable demo mode"""
+    global demo_mode_enabled, demo_ai_processes, demo_browser_tabs, demo_summary
+    demo_mode_enabled = False
+
+    # Reset demo data
+    demo_ai_processes = []
+    demo_browser_tabs = {'chrome': [], 'firefox': [], 'edge': []}
+    demo_summary = {'total_tabs': 0, 'browsers': {'chrome': 0, 'firefox': 0, 'edge': 0}}
+
+    return jsonify({
+        'success': True,
+        'message': 'Demo mode disabled'
+    })
 
 # WebSocket Events
 @socketio.on('connect')
@@ -285,10 +481,18 @@ def monitoring_loop():
 
 def get_current_monitoring_data():
     """Get current monitoring data for real-time updates"""
-    processes = monitor.get_running_processes()[:25]  # Top 25
-    ai_processes = monitor.get_ai_processes()
-    tabs = monitor.get_browser_tabs()
-    tab_summary = monitor.get_tab_summary()
+    if demo_mode_enabled:
+        # Return current demo data
+        real_processes = monitor.get_running_processes()[:22]  # Make room for demo
+        all_processes = real_processes + demo_ai_processes
+        current_demo_tabs = demo_browser_tabs
+        current_demo_summary = demo_summary
+    else:
+        processes = monitor.get_running_processes()[:25]  # Top 25
+        ai_processes = monitor.get_ai_processes()
+        all_processes = processes
+        current_demo_tabs = monitor.get_browser_tabs()
+        current_demo_summary = monitor.get_tab_summary()
 
     # Basic system stats
     try:
@@ -301,13 +505,13 @@ def get_current_monitoring_data():
 
     return {
         'processes': {
-            'all': processes,
-            'ai': ai_processes,
-            'count': len(processes)
+            'all': all_processes,
+            'ai': demo_ai_processes if demo_mode_enabled else monitor.get_ai_processes(),
+            'count': len(all_processes)
         },
         'browser_tabs': {
-            'tabs': tabs,
-            'summary': tab_summary
+            'tabs': current_demo_tabs,
+            'summary': current_demo_summary
         },
         'system_stats': {
             'cpu_percent': cpu_percent,
